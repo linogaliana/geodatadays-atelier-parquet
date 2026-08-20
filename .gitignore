@@ -1,3 +1,5 @@
+.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -216,3 +218,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Observable Framework / Node
+.DS_Store
+/dist/
+node_modules/
+yarn-error.log
+
+# Generated per-commune parcel geojson (see scripts/generate_commune_parcels.py
+# and scripts/generate_commune_ocs.py)
+/src/data/communes/
+/src/data/communes-ocs/
