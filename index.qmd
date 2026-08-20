@@ -1,0 +1,205 @@
+---
+title: "[{{< fa brands r-project  >}}]{.blue2} est-il un langage adapté à la production ?"
+subtitle: |
+    Rencontres [{{< fa brands r-project >}}]{.blue2} 2026
+author:
+    - Lino Galiana
+date: 2026-06-17
+slide-number: true
+footer: |
+  Rencontres [{{< fa brands r-project >}}]{.blue2} 2026
+lang: fr-FR
+slide-tone: false
+chalkboard:
+  theme: whiteboard
+width: 1200
+format: revealjs
+#format:
+#  onyxia-revealjs:
+#    incremental: true
+#    output-file: index.html
+controls: true
+css: custom.css
+from: markdown+emoji
+bibliography: references.bib
+---
+
+## Introduction
+
+<br>
+
+1. Qu'est-ce que la production ?
+
+. . .
+
+2. Détour historique
+
+. . .
+
+3. [{{< fa brands r-project >}}]{.blue2} en production: enjeux et limites
+
+# Qu'est-ce que la production ? {background-color="#2C3E50"}
+
+## Définition
+
+<br>
+
+::: {.callout-important}
+## Mettre en production
+
+Faire [**vivre**]{.blue2} une application dans l'espace de ses [**utilisateurs**]{.blue2}
+:::
+
+<br>
+
+Les trois commandements d'Hadley [@wickham_masiello_r_in_production]:
+
+1. *Not just once*
+2. *Not just me*
+3. *Not just my computer*
+
+
+## Spécificité dans notre contexte
+
+* [**3 cycles de vie**]{.orange2} différents à gérer:
+
+![_Image empruntée au cours de ["Mise en production de projets data science"](https://ensae-reproductibilite.github.io/)_](/images/environment_clean.png)
+
+
+## Quelques exemples concrets {.smaller}
+
+| **Type d'output** | **Exemples** |
+|---|---|
+| *API* | Exposer un modèle ML pour servir ses prédictions |
+| *Base de données* | *Pipeline automatisé* avec un ETL quotidien, chaîne de traitement de données |
+| *Application web* | Tableau de bord, outil métier |
+| *Rapport automatique* | Note générée sans intervention |
+
+::: {.callout-note}
+Le package n'est pas toujours le moyen de partage de code le plus adapté
+:::
+
+
+# Détour historique {background-color="#2C3E50"}
+
+## Par des statisticiens, pour des statisticiens
+
+- Usage principal de {{< fa brands r-project >}} : analyser des données, produire des figures et tableaux
+    - Le `data.frame` comme objet central
+    - Un [**nombre limité d'objets**]{.blue2} de base 
+
+. . .
+
+- Né dans les années 1990 d'une [**communauté académique de statisticiens**]{.orange2}
+
+## Le paradigme de l'interactivité
+
+* On [**dialogue avec ses données**]{.orange2} (essai/erreur):
+    * Exporte le résultat vers un autre *medium* (e.g. un papier académique)
+
+. . .
+
+* Un choix bien adapté au [**contexte d'origine**]{.orange2}
+    * {{< fa brands r-project >}} souvent enseigné comme premier langage dans un cursus académique
+    * Comme substitut à un outil clique-bouton...
+    * ... Mais [**pas forcément pour la programmation**]{.blue2}.
+
+
+## L'élargissement progressif de la communauté
+
+* __[Révolution *data*]{.orange2}__:
+    * Succès dans des entreprises proches de la recherche académique en statistiques (là où SAS dominait)
+    * {{< fa brands python >}}: ouvert plus tard à la *data* mais déjà un ancrage dans la communauté *computer science*
+
+. . .
+
+* `shiny` (effet wahou), `tidyverse` (grammaire), `RStudio` (IDE tout en un) ont permis à de **[nouveaux profils de se mettre à {{< fa brands r-project >}}]{.orange2}**
+
+## La reproductibilité, notion au centre de l'écosystème {{< fa brands r-project >}}
+
+* Une communauté attachée aux enjeux de [**reproductibilité**]{.orange2}
+    * Influence de la communauté scientifique reste forte
+
+. . .
+
+* Origine de `R Markdown` avant `Quarto` (❤️)
+  * Mieux que les *notebooks* `Jupyter` pour la reproductibilité !
+  * `Quarto`: gros progrès dans le domaine par rapport à {{< fa brands r-project >}} +$\LaTeX$
+ 
+
+# {{< fa brands r-project >}} en production ? {background-color="#2C3E50"}
+
+## Un code en production doit être:
+
+* [**Traçable**]{.orange2}: gestion des erreurs, *logs*, monitoring, versionnage
+
+. . .
+
+* [**Portable**]{.orange2}: tourne ailleurs que sur votre machine
+
+. . .
+
+* [**Lisible**]{.orange2}: peut être maintenu par quelqu'un d'autre
+
+. . .
+
+* [**Testable**]{.orange2}: le comportement est vérifié automatiquement
+
+. . .
+
+* [**Reproductible**]{.orange2}: on est capable d'isoler l'effet des changements de code, de configuration ou de données pour reproduire  des résultats
+
+
+## L'interactivité, effet pervers {.smaller}
+
+* En production, [**pas d'IDE**]{.orange2}
+  * Implique d'avoir une [**logique de code différente**]{.blue2} (*logging*, configuration, etc.)
+  * Problème connu dans la communauté {{< fa brands python >}} avec les *notebooks* `Jupyter`
+
+. . .
+
+* Beaucoup de [**configurations passent directement par la session {{< fa brands r-project >}}**]{.orange2} :
+  * `install.packages` vs `pip install`
+  * `renv` vs `uv`
+  * `ruff` vs `styler`
+
+. . .
+
+* Encore une [**culture limitée de la ligne de commande**]{.orange2} (y compris pour `Git` {{< fa brands git-alt >}} )
+  * Effet pervers de l'esprit d'entraide de la communauté {{< fa brands r-project >}} ?
+  * Limite du *un outil pour tout* (ex: interface `Shiny` au lieu de `Quarto` + `Javascript`)
+
+## Quelle différence avec {{< fa brands python >}} ?
+
+* {{< fa brands python >}} [**plus contraignant**]{.orange2} sur la modularité que {{< fa brands r-project >}}
+
+. . .
+
+* Communauté {{< fa brands python >}} [**a changé ses pratiques**]{.orange2} dernièrement:
+  * Moins de `Jupyter` *notebooks*, plus de *linting* (`Ruff`)
+  * Plus de dialogue avec devs, data engineers
+  * Moins de travail en solo
+
+
+::: {.callout-tip}
+## Régulièrement des nouveautés utiles à la production
+
+`argparse` (>=3.2, 2011) `venv` (>=3.3, 2012), `pathlib` (>=3.4, 2014), _type hinting_ (>=3.5, 2015), *f-string* (>=3.6, 2016), `tomllib` et amélioration du *traceback* (>3.11, 2022)...
+:::
+
+# Conclusion : une histoire d'outils et de pratiques  {background-color="#2C3E50"}
+
+## {{< fa brands r-project >}} est-il adapté à la production ?
+
+* [**Techniquement : oui.**]{.orange2}
+    + Les outils nécessaires existent, même s'ils sont moins aboutis qu'en {{< fa brands python >}} ou {{< fa brands js-square >}}.
+
+. . .
+
+* [**Plutôt une histoire d'outils et de pratiques**]{.orange2}:
+  - Faible adoption du [__*linting*__]{.blue2}, des [**environnements virtuels**]{.blue2}
+  - [**Culture CLI**]{.blue2} moins présente
+  - [**Gap plus fort**]{.blue2} avec les profils devs, les *data engineers* 
+  - Culture encore limitée du [**travail collaboratif**]{.blue2}
+
+## Références

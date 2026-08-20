@@ -1,0 +1,62 @@
+@font-face {
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 400;
+    src: url('fonts/OpenSans-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-weight: 700;
+    src: url('fonts/OpenSans-Bold.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    font-style: italic;
+    font-weight: 400;
+    src: url('fonts/OpenSans-Italic.ttf') format('truetype');
+}
+
+:root {
+    --r-main-font: 'Open Sans', sans-serif;
+    --r-heading-font: 'Open Sans', sans-serif;
+    --r-code-font: monospace;
+}
+
+.reveal, .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5, .reveal h6 {
+    font-family: 'Open Sans', sans-serif;
+}
+
+.reveal h2 {
+    color: #4758AB;
+}
+
+.green2, .green2 code, .green2 a { color: #008A25!important; }
+.red2, .red2 code, .red2 a { color: #EE0220!important; }
+.blue2, .blue2 code, .blue2 a { color: #4758AB!important; }
+.orange2, .orange2 code, .orange2 a { color: #ec6842!important; }
+.quarto-title-author-name  {
+    color: #ec6842;
+    font-weight: bold;
+}
+
+.reveal .title {
+    font-size: 1.9em !important;
+    margin-bottom: 0.4em !important;
+}
+
+.reveal .subtitle {
+    font-size: 0.9em !important;
+}
+
+html.print-pdf .reveal .footer {
+    display: none;
+}
+
+@page {
+    size: 12.5in 7.29in;
+    margin: 0;
+}
+
