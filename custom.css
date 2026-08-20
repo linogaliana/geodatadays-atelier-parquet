@@ -60,3 +60,129 @@ html.print-pdf .reveal .footer {
     margin: 0;
 }
 
+/* --- Bouton "Tester en live" (play épuré) --- */
+.run-live-btn {
+    width: 2.4em;
+    height: 2.4em;
+    padding: 0;
+    border: 1.5px solid #4758AB;
+    border-radius: 50%;
+    background: transparent;
+    color: #4758AB;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.run-live-btn svg {
+    width: 38%;
+    height: 38%;
+    margin-left: 0.15em;
+}
+.run-live-btn:hover {
+    background: #4758AB;
+    color: #fff;
+}
+.run-live-btn:active {
+    transform: scale(0.94);
+}
+
+/* --- Widget "Tester en live" (bouton + statut + recherche + tableau) --- */
+.testlive-widget .run-live-btn {
+    margin-bottom: 0.4em;
+}
+
+/* --- Explorateur par commune (carte + barplot) --- */
+.test-live-slide select,
+.test-live-slide label {
+    font-size: 13px;
+}
+.reveal .maplibregl-popup-content {
+    font-size: 13px;
+    padding: 8px 10px;
+}
+.reveal .maplibregl-ctrl-group button {
+    width: 26px;
+    height: 26px;
+}
+
+/* --- Résultats de requête live --- */
+.testlive-placeholder {
+    color: #888;
+    font-style: italic;
+}
+.testlive-search-input {
+    font-size: 13px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    max-width: 320px;
+    margin: 0.4em 0;
+}
+.testlive-search-input:focus {
+    outline: none;
+    border-color: #4758AB;
+}
+.testlive-timing {
+    font-size: 13px;
+    color: #666;
+    margin: 0.3em 0 0.6em 0;
+}
+.testlive-results table {
+    table-layout: fixed;
+    width: 100%;
+}
+.testlive-results td,
+.testlive-results th {
+    white-space: normal !important;
+    overflow-wrap: break-word;
+    vertical-align: middle;
+    font-size: 13px !important;
+    padding: 3px 6px !important;
+}
+
+/* --- Cellule "barre de proportion" --- */
+.bar-track {
+    position: relative;
+    background: #eee;
+    border-radius: 4px;
+    height: 1.1em;
+    width: 100%;
+    overflow: hidden;
+}
+.bar-fill {
+    position: absolute;
+    inset: 0;
+    width: 0;
+    background: #4758AB;
+    border-radius: 4px;
+}
+.bar-label {
+    position: relative;
+    z-index: 1;
+    display: block;
+    text-align: right;
+    padding-right: 0.4em;
+    font-size: 12px;
+    line-height: 1.1em;
+    color: #222;
+}
+
+/* --- Carte département + sélecteur de culture (surlignage) --- */
+.highlight-stats {
+    margin-top: 0.6em;
+}
+.highlight-stats .stat-value {
+    font-size: 1.7em;
+    font-weight: 700;
+    color: #ec6842;
+    line-height: 1.2em;
+}
+.highlight-stats .stat-label {
+    font-size: 0.85em;
+    color: #666;
+    margin-bottom: 0.6em;
+}
+

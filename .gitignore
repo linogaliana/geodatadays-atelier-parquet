@@ -1,5 +1,6 @@
 .vscode/
 _output/
+.quarto/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -198,9 +199,9 @@ cython_debug/
 .abstra/
 
 # Visual Studio Code
-#   Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
+#   Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore
 #   that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
-#   and can be added to the global gitignore or merged into this file. However, if you prefer, 
+#   and can be added to the global gitignore or merged into this file. However, if you prefer,
 #   you could uncomment the following to ignore the entire vscode folder
 # .vscode/
 # Temporary file for partial code execution
@@ -230,3 +231,14 @@ yarn-error.log
 # and scripts/generate_commune_ocs.py)
 /src/data/communes/
 /src/data/communes-ocs/
+
+# Generated per-commune parcel geojson for the Quarto deck
+# (see scripts/generate_quarto_commune_data.py)
+/data/communes/
+
+# Generated full-department parcel geojson for the Quarto deck
+# (see scripts/generate_quarto_full_parcels.py)
+/data/parcelles-full.geojson
+
+/.quarto/
+**/*.quarto_ipynb

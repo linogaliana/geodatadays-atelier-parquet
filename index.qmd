@@ -1,205 +1,910 @@
 ---
-title: "[{{< fa brands r-project  >}}]{.blue2} est-il un langage adapté à la production ?"
+title: "Recensement des cultures"
 subtitle: |
-    Rencontres [{{< fa brands r-project >}}]{.blue2} 2026
+    RPG Pas-de-Calais 2024 — statistiques descriptives (hors dimension géographique)
 author:
     - Lino Galiana
-date: 2026-06-17
+date: 2026-08-20
 slide-number: true
 footer: |
-  Rencontres [{{< fa brands r-project >}}]{.blue2} 2026
+  Atelier Parquet · Geodata Days
 lang: fr-FR
 slide-tone: false
 chalkboard:
   theme: whiteboard
 width: 1200
 format: revealjs
-#format:
-#  onyxia-revealjs:
-#    incremental: true
-#    output-file: index.html
+revealjs-plugins:
+  - chat-bubbles
 controls: true
 css: custom.css
 from: markdown+emoji
-bibliography: references.bib
+resources:
+  - data/communes/**
+  - data/parcelles-full.geojson
+header-includes: |
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" integrity="sha256-qx5w1Z7EBGW65+cDDaLzzPKBM/1QLmK9WY7vut/XpzI=" crossorigin="">
 ---
+
+## Pour des données statistiques
+
+:::: {.chat theme="teams" names="Benjamin,parquetGPT"}
+
+::: {.speaker-1}
+`@lino` la démo en est où ?
+:::
+
+::: {.speaker-2 .fragment .typing}
+Bonjour je suis l'assistant virtuel de Lino. Je suis là pour vous montrer ce qu'on peut faire avec le format `Parquet`.
+:::
+
+::: {.speaker-1 .fragment}
+Je veux connaître les principales cultures des Hauts de France avec le RPG
+:::
+
+::: {.speaker-2 .fragment .typing}
+Je suppose que RPG = registre parcellaire général et pas *role playing game* (humour de LLM).
+
+C'est facile si la donnée est en `Parquet` sur un *cloud* de type `S3`. Je n'ai même pas besoin de réfléchir.
+:::
+
+::: {.speaker-2 .fragment .typing}
+
+`DuckDB` te permettra d'avoir ton résultat grâce à du SQL. 
+
+```sql
+SELECT
+    r.code_cultu,
+    COALESCE(d.nom_culture, r.code_cultu) AS nom_culture,
+    COALESCE(d.nom_chapitre, 'Non classé') AS nom_chapitre,
+    COUNT(*) AS n
+FROM read_parquet('${RPG_URL}') r
+LEFT JOIN dico d ON r.code_cultu = d.code_culture
+WHERE r.code_cultu IS NOT NULL
+GROUP BY 1, 2, 3
+ORDER BY n DESC
+```
+
+**Tu veux tester en live ?**
+
+:::
+
+::::
+
+## Test live {.test-live-slide}
+
+{{< include _partials/_duckdb-setup.qmd >}}
+
+```{ojs}
+//| echo: false
+//| output: false
+sqlTestLive = `
+SELECT
+    r.code_cultu,
+    COALESCE(d.nom_culture, r.code_cultu) AS nom_culture,
+    COALESCE(d.nom_chapitre, 'Non classé') AS nom_chapitre,
+    COUNT(*) AS n
+FROM read_parquet('${RPG_URL}') r
+LEFT JOIN dico d ON r.code_cultu = d.code_culture
+WHERE r.code_cultu IS NOT NULL
+GROUP BY 1, 2, 3
+ORDER BY n DESC
+`
+```
+
+
+```{ojs}
+//| echo: false
+liveQueryDemo({
+  sql: sqlTestLive,
+  mapRow: (d) => ({
+    code_cultu: d.code_cultu,
+    nom_culture: d.nom_culture,
+    nom_chapitre: d.nom_chapitre,
+    n: Number(d.n)
+  }),
+  valueField: "n",
+  searchFields: ["nom_culture", "nom_chapitre", "code_cultu"],
+  columns: ["nom_culture", "nom_chapitre", "n", "part"],
+  header: {
+    nom_culture: "Culture",
+    nom_chapitre: "Famille",
+    n: "Parcelles",
+    part: "Proportion"
+  },
+  width: { nom_culture: 200, nom_chapitre: 200, n: 90, part: 160 },
+  searchPlaceholder: "🔍 Rechercher une culture ou une famille…"
+})
+```
+
+
+## Pour des données géographiques
+
+:::: {.chat theme="teams" names="Benjamin,parquetGPT"}
+
+::: {.speaker-1}
+Julien est pas impressionné...
+:::
+
+::: {.speaker-1}
+Il dit qu'il veut faire de la géo
+:::
+
+::: {.speaker-2 .fragment}
+On peut utiliser `Parquet` pour stocker des données géographiques, ça sera beaucoup plus rapide et léger qu'un `GeoJSON`.
+:::
+
+::: {.speaker-1 .fragment}
+Julien ne croît que ce qu'il voit. Faut une démo.
+:::
+
+::: {.speaker-2 .fragment .typing}
+Julien est exigeant, c'est normal *(filtre de bienveillance sirupeuse activé)*. 
+:::
+
+::: {.speaker-2 .fragment}
+On va calculer la part des surfaces (et plus seulement des exploitations) dans chaque culture.
+:::
+
+
+::::
+
+## Test live (surfaces) {.test-live-slide}
+
+```{ojs}
+//| echo: false
+//| output: false
+sqlTestLiveSurface = `
+SELECT
+    r.code_cultu,
+    COALESCE(d.nom_culture, r.code_cultu) AS nom_culture,
+    COALESCE(d.nom_chapitre, 'Non classé') AS nom_chapitre,
+    COUNT(*) AS n,
+    SUM(r.area) / 10000 AS surface_ha
+FROM read_parquet('${RPG_URL}') r
+LEFT JOIN dico d ON r.code_cultu = d.code_culture
+WHERE r.code_cultu IS NOT NULL
+GROUP BY 1, 2, 3
+ORDER BY surface_ha DESC
+`
+```
+
+```{ojs}
+//| echo: false
+liveQueryDemo({
+  sql: sqlTestLiveSurface,
+  mapRow: (d) => ({
+    code_cultu: d.code_cultu,
+    nom_culture: d.nom_culture,
+    nom_chapitre: d.nom_chapitre,
+    n: Number(d.n),
+    surface_ha: Number(d.surface_ha)
+  }),
+  valueField: "surface_ha",
+  extraBar: { field: "n", key: "part_n", color: "#4758AB" },
+  searchFields: ["nom_culture", "nom_chapitre", "code_cultu"],
+  columns: ["nom_culture", "nom_chapitre", "n", "part_n", "surface_ha", "part"],
+  header: {
+    nom_culture: "Culture",
+    nom_chapitre: "Famille",
+    n: "Parcelles",
+    part_n: "Part parcelles",
+    surface_ha: "Surface (ha)",
+    part: "Part surface"
+  },
+  width: { nom_culture: 150, nom_chapitre: 150, n: 70, part_n: 120, surface_ha: 90, part: 120 },
+  valueFormat: (v) => frNumber(v, 0),
+  align: { n: "right" },
+  format: { n: frInt },
+  barColor: "#ec6842",
+  searchPlaceholder: "🔍 Rechercher une culture ou une famille…"
+})
+```
+
+
+## Vitesse au service de l'interactivité
+
+:::: {.chat theme="teams" names="Benjamin,parquetGPT"}
+
+::: {.speaker-1}
+Julien dit que la vitesse c'est pas très important
+:::
+
+
+::: {.speaker-1}
+Qu'on peut faire les calculs une fois pour toute et puis voilà. 
+:::
+
+::: {.speaker-2 .fragment .typing}
+Si on veut faire une application *web*, où on change la carte régulièrement, la performance c'est important.
+:::
+
+::: {.speaker-1 .fragment}
+Montre moi
+:::
+
+::::
+
+## Explorer par commune {.test-live-slide}
+
+```{ojs}
+//| echo: false
+//| output: false
+// Géométries des parcelles précalculées par commune (voir
+// scripts/generate_quarto_commune_data.py) : DuckDB-wasm dans le navigateur
+// ne parvient pas à charger l'extension spatiale de façon fiable avec le
+// DuckDBClient bundlé (version trop ancienne côté Observable), donc la
+// reprojection Lambert-93 -> WGS84 est faite une fois, au moment du rendu.
+communeSlugs = fetch("data/communes/index.json").then((r) => r.json())
+```
+
+```{ojs}
+//| echo: false
+viewof communeSel = Inputs.select(Object.keys(communeSlugs).sort(), { label: "Commune", value: "Arras" })
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+dicoByCode = new Map(dico.map((d) => [d.code_culture, d]))
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+familyColor = d3.scaleOrdinal(
+  [...new Set(dico.map((d) => d.nom_chapitre))].sort(),
+  d3.schemeTableau10.concat(d3.schemeSet3)
+)
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Parcourt récursivement un tableau de coordonnées GeoJSON (Polygon ou
+// MultiPolygon) pour calculer une bounding box, sans dépendance à turf.
+function geojsonBounds(fc) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  function visit(coords) {
+    if (typeof coords[0] === "number") {
+      const [x, y] = coords;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    } else {
+      coords.forEach(visit);
+    }
+  }
+  fc.features.forEach((f) => visit(f.geometry.coordinates));
+  return [[minX, minY], [maxX, maxY]];
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+maplibregl = require("maplibre-gl@5")
+```
+
+:::: {.columns}
+
+::: {.column width="55%"}
+
+```{ojs}
+//| echo: false
+mapDiv = {
+  const div = document.createElement("div");
+  div.style.height = "440px";
+  div.style.borderRadius = "8px";
+  div.style.zIndex = "0";
+  return div;
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+map = {
+  const m = new maplibregl.Map({
+    container: mapDiv,
+    style: {
+      version: 8,
+      sources: {
+        osm: {
+          type: "raster",
+          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+          tileSize: 256,
+          attribution: "&copy; OpenStreetMap contributors"
+        }
+      },
+      layers: [{ id: "osm", type: "raster", source: "osm" }]
+    },
+    center: [2.5, 50.4],
+    zoom: 9
+  });
+  m.addControl(new maplibregl.NavigationControl());
+  return m;
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Résolu une fois le style de base chargé : source + calques des parcelles,
+// et le mouseover (popup) sur la couche de remplissage.
+mapReady = new Promise((resolve) => {
+  map.on("load", () => {
+    map.addSource("parcels", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({
+      id: "parcels-fill",
+      type: "fill",
+      source: "parcels",
+      paint: { "fill-color": ["get", "color"], "fill-opacity": 0.75 }
+    });
+    map.addLayer({
+      id: "parcels-line",
+      type: "line",
+      source: "parcels",
+      paint: { "line-color": "#20201d", "line-width": 0.4, "line-opacity": 0.6 }
+    });
+
+    const popup = new maplibregl.Popup({ closeButton: false });
+    map.on("mousemove", "parcels-fill", (e) => {
+      map.getCanvas().style.cursor = "pointer";
+      const f = e.features[0];
+      popup
+        .setLngLat(e.lngLat)
+        .setHTML(`<strong>${f.properties.nom_culture}</strong><br>${Number(f.properties.surface_ha).toFixed(2)} ha`)
+        .addTo(map);
+    });
+    map.on("mouseleave", "parcels-fill", () => {
+      map.getCanvas().style.cursor = "";
+      popup.remove();
+    });
+
+    map.resize();
+    resolve();
+  });
+})
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// La géométrie ne peut pas venir d'un simple GROUP BY : dessiner un contour
+// de parcelle nécessite la forme réelle, donc le fichier précalculé
+// (communeSlugs / data/communes/*.geojson) reste la seule source possible
+// ici, indépendamment du barplot ci-contre qui n'en a lui pas besoin.
+communeGeo = {
+  const slug = communeSlugs[communeSel];
+  const fc = await fetch(`data/communes/${slug}.geojson`).then((r) => r.json());
+  return {
+    type: "FeatureCollection",
+    features: fc.features.map((f) => {
+      const meta = dicoByCode.get(f.properties.k);
+      const nom_chapitre = meta?.nom_chapitre ?? "Non classé";
+      return {
+        type: "Feature",
+        geometry: f.geometry,
+        properties: {
+          nom_culture: meta?.nom_culture ?? f.properties.k,
+          nom_chapitre,
+          surface_ha: f.properties.s,
+          color: familyColor(nom_chapitre)
+        }
+      };
+    })
+  };
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Met à jour la source à chaque changement de commune et recadre la carte.
+updateMap = {
+  await mapReady;
+  map.getSource("parcels").setData(communeGeo);
+  const bounds = geojsonBounds(communeGeo);
+  if (Number.isFinite(bounds[0][0])) {
+    map.fitBounds(bounds, { padding: 24, maxZoom: 15, duration: 300 });
+  }
+  return true;
+}
+```
+
+```{ojs}
+//| echo: false
+{
+  updateMap;
+  return html`<p class="testlive-timing">⏱️ Requête SQL : <strong>${communeStats.elapsed_ms.toFixed(0)} ms</strong> · ${communeGeo.features.length} parcelles affichées — ${communeSel}</p>`;
+}
+```
+
+:::
+
+::: {.column width="45%"}
+
+```{ojs}
+//| echo: false
+//| output: false
+// Contrairement à la géométrie de la carte, ceci n'a pas besoin de spatial :
+// juste un filtre par commune + GROUP BY culture, comme les autres slides
+// "Test live" du deck — donc requête SQL live, pas de fichier précalculé.
+sqlCommuneStats = (commune) => `
+SELECT
+    COALESCE(d.nom_culture, r.code_cultu) AS nom_culture,
+    COALESCE(d.nom_chapitre, 'Non classé') AS nom_chapitre,
+    COUNT(*) AS n,
+    SUM(r.area) / 10000 AS surface_ha
+FROM read_parquet('${RPG_URL}') r
+LEFT JOIN dico d ON r.code_cultu = d.code_culture
+WHERE r.nom_officiel = '${commune.replace(/'/g, "''")}'
+GROUP BY 1, 2
+ORDER BY surface_ha DESC
+`
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+communeStats = {
+  const t0 = performance.now();
+  const raw = await db.query(sqlCommuneStats(communeSel));
+  const rows = Array.from(raw, (d) => ({
+    nom_culture: d.nom_culture,
+    nom_chapitre: d.nom_chapitre,
+    n: Number(d.n),
+    surface_ha: Number(d.surface_ha)
+  }));
+  return { rows, barRows: rows.slice(0, 12), elapsed_ms: performance.now() - t0 };
+}
+```
+
+```{ojs}
+//| echo: false
+Plot.plot({
+  marginLeft: 220,
+  width: 480,
+  height: 440,
+  x: { label: "Surface (ha)" },
+  y: { label: null, tickFormat: truncateLabel },
+  marks: [
+    Plot.barX(communeStats.barRows, {
+      y: "nom_culture",
+      x: "surface_ha",
+      fill: "#008A25",
+      sort: { y: "-x" }
+    })
+  ]
+})
+```
+
+:::
+
+::::
+
+## Affichage et calculs fluides {.test-live-slide}
+
+```{ojs}
+//| echo: false
+//| output: false
+sqlCultureList = `
+SELECT DISTINCT COALESCE(d.nom_culture, r.code_cultu) AS nom_culture
+FROM read_parquet('${RPG_URL}') r
+LEFT JOIN dico d ON r.code_cultu = d.code_culture
+WHERE r.code_cultu IS NOT NULL
+`
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Seules les cultures réellement présentes dans le RPG du département (pas
+// les ~143 du référentiel national, dont beaucoup n'ont aucune parcelle ici).
+cultureList = Array.from(await db.query(sqlCultureList), (d) => d.nom_culture).sort((a, b) => a.localeCompare(b, "fr"))
+```
+
+:::: {.columns}
+
+::: {.column width="55%"}
+
+```{ojs}
+//| echo: false
+mapAllDiv = {
+  const div = document.createElement("div");
+  div.style.height = "440px";
+  div.style.borderRadius = "8px";
+  div.style.zIndex = "0";
+  return div;
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+mapAll = {
+  const m = new maplibregl.Map({
+    container: mapAllDiv,
+    style: {
+      version: 8,
+      sources: {
+        osm: {
+          type: "raster",
+          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+          tileSize: 256,
+          attribution: "&copy; OpenStreetMap contributors"
+        }
+      },
+      layers: [{ id: "osm", type: "raster", source: "osm" }]
+    },
+    // Emprise fixe du Pas-de-Calais (mêmes bornes que la carte brute du site
+    // Observable), pas besoin de recadrer dynamiquement ici.
+    bounds: [[1.5629901, 50.0198391], [3.188217, 51.0068167]]
+  });
+  m.addControl(new maplibregl.NavigationControl());
+  return m;
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+mapAllReady = new Promise((resolve) => {
+  mapAll.on("load", () => {
+    mapAll.addSource("parcels-all", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    mapAll.addLayer({
+      id: "parcels-all-fill",
+      type: "fill",
+      source: "parcels-all",
+      paint: { "fill-color": "#c9c9c2", "fill-opacity": 0.25 }
+    });
+    mapAll.addLayer({
+      id: "parcels-all-line",
+      type: "line",
+      source: "parcels-all",
+      paint: { "line-color": "#20201d", "line-width": 0.15, "line-opacity": 0.25 }
+    });
+
+    const popup = new maplibregl.Popup({ closeButton: false });
+    mapAll.on("mousemove", "parcels-all-fill", (e) => {
+      mapAll.getCanvas().style.cursor = "pointer";
+      const f = e.features[0];
+      popup
+        .setLngLat(e.lngLat)
+        .setHTML(`<strong>${f.properties.nom_culture}</strong><br>${Number(f.properties.surface_ha).toFixed(2)} ha`)
+        .addTo(mapAll);
+    });
+    mapAll.on("mouseleave", "parcels-all-fill", () => {
+      mapAll.getCanvas().style.cursor = "";
+      popup.remove();
+    });
+
+    mapAll.resize();
+    resolve();
+  });
+})
+```
+
+```{ojs}
+//| echo: false
+viewof allParcelsBtn = runLiveButton("Charger toutes les parcelles du département")
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Chargement complet (une seule fois, au clic) : la géométrie de tout le
+// département — précalculée (voir scripts/generate_quarto_full_parcels.py ;
+// même raison qu'"Explorer par commune" : l'extension spatiale ne se charge
+// pas de façon fiable dans DuckDB-wasm avec le DuckDBClient bundlé) — est
+// récupérée puis posée sur la source MapLibre. Ensuite, changer la culture
+// sélectionnée (viewof cultureSel, colonne de droite) ne relance aucun
+// fetch : c'est juste un repaint MapLibre sur les données déjà en mémoire
+// dans le navigateur — le "calcul fluide" de ce slide.
+allParcelsData = {
+  if (allParcelsBtn == null) return null;
+  await mapAllReady;
+  const t0 = performance.now();
+  const fc = await fetch("data/parcelles-full.geojson").then((r) => r.json());
+  const rows = fc.features.map((f) => {
+    const meta = dicoByCode.get(f.properties.k);
+    return {
+      code_cultu: f.properties.k,
+      nom_culture: meta?.nom_culture ?? f.properties.k,
+      surface_ha: f.properties.s,
+      geometry: f.geometry
+    };
+  });
+  const geojson = {
+    type: "FeatureCollection",
+    features: rows.map((r) => ({
+      type: "Feature",
+      geometry: r.geometry,
+      properties: { code_cultu: r.code_cultu, nom_culture: r.nom_culture, surface_ha: r.surface_ha }
+    }))
+  };
+  mapAll.getSource("parcels-all").setData(geojson);
+  return { rows, geojson, elapsed_ms: performance.now() - t0 };
+}
+```
+
+```{ojs}
+//| echo: false
+{
+  if (allParcelsData == null) {
+    return html`<p class="testlive-placeholder">Cliquez pour charger et afficher les ${totalInputRows.toLocaleString("fr-FR")} parcelles du département, puis choisissez une culture à droite pour la faire ressortir.</p>`;
+  }
+  return html`<p class="testlive-timing">⏱️ ${allParcelsData.elapsed_ms.toFixed(0)} ms · ${allParcelsData.rows.length.toLocaleString("fr-FR")} parcelles chargées</p>`;
+}
+```
+
+:::
+
+::: {.column width="45%"}
+
+```{ojs}
+//| echo: false
+viewof cultureSel = Inputs.select(cultureList, { label: "Culture à surligner", value: "Blé tendre" })
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+updateAllMapHighlight = {
+  await mapAllReady;
+  if (allParcelsData == null) return false;
+  mapAll.setPaintProperty("parcels-all-fill", "fill-color", [
+    "case", ["==", ["get", "nom_culture"], cultureSel], "#ec6842", "#c9c9c2"
+  ]);
+  mapAll.setPaintProperty("parcels-all-fill", "fill-opacity", [
+    "case", ["==", ["get", "nom_culture"], cultureSel], 0.85, 0.15
+  ]);
+  mapAll.setPaintProperty("parcels-all-line", "line-color", [
+    "case", ["==", ["get", "nom_culture"], cultureSel], "#7a2f10", "#20201d"
+  ]);
+  mapAll.setPaintProperty("parcels-all-line", "line-opacity", [
+    "case", ["==", ["get", "nom_culture"], cultureSel], 0.9, 0.15
+  ]);
+  return true;
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+selectedCultureStats = {
+  updateAllMapHighlight;
+  if (allParcelsData == null) return null;
+  const rows = allParcelsData.rows;
+  const totalSurface = d3.sum(rows, (d) => d.surface_ha);
+  const selRows = rows.filter((d) => d.nom_culture === cultureSel);
+  const surface = d3.sum(selRows, (d) => d.surface_ha);
+  return { n: selRows.length, surface, part: totalSurface > 0 ? surface / totalSurface : 0 };
+}
+```
+
+```{ojs}
+//| echo: false
+{
+  if (selectedCultureStats == null) {
+    return html`<p class="testlive-placeholder">En attente du chargement de la carte…</p>`;
+  }
+  const s = selectedCultureStats;
+  return html`<div class="highlight-stats">
+    <div class="stat-value">${s.n.toLocaleString("fr-FR")}</div>
+    <div class="stat-label">parcelles de « ${cultureSel} »</div>
+    <div class="stat-value">${frNumber(s.surface, 0)} ha</div>
+    <div class="stat-label">soit ${(s.part * 100).toFixed(1)} % de la surface du département</div>
+  </div>`;
+}
+```
+
+:::
+
+::::
 
 ## Introduction
 
 <br>
 
-1. Qu'est-ce que la production ?
-
-. . .
-
-2. Détour historique
-
-. . .
-
-3. [{{< fa brands r-project >}}]{.blue2} en production: enjeux et limites
-
-# Qu'est-ce que la production ? {background-color="#2C3E50"}
-
-## Définition
-
-<br>
-
-::: {.callout-important}
-## Mettre en production
-
-Faire [**vivre**]{.blue2} une application dans l'espace de ses [**utilisateurs**]{.blue2}
-:::
-
-<br>
-
-Les trois commandements d'Hadley [@wickham_masiello_r_in_production]:
-
-1. *Not just once*
-2. *Not just me*
-3. *Not just my computer*
-
-
-## Spécificité dans notre contexte
-
-* [**3 cycles de vie**]{.orange2} différents à gérer:
-
-![_Image empruntée au cours de ["Mise en production de projets data science"](https://ensae-reproductibilite.github.io/)_](/images/environment_clean.png)
-
-
-## Quelques exemples concrets {.smaller}
-
-| **Type d'output** | **Exemples** |
-|---|---|
-| *API* | Exposer un modèle ML pour servir ses prédictions |
-| *Base de données* | *Pipeline automatisé* avec un ETL quotidien, chaîne de traitement de données |
-| *Application web* | Tableau de bord, outil métier |
-| *Rapport automatique* | Note générée sans intervention |
+* Recenser les cultures déclarées dans le [**RPG 2024**]{.blue2} (Pas-de-Calais), [**sans dimension géographique**]{.orange2}
+* Tout est calculé [**dans le navigateur**]{.orange2}, via `DuckDB` [**WASM**]{.blue2}, en lisant directement le parquet public
+* Chaque slide propose un bouton : [**SQL**]{.blue2} (par défaut) ou [**graphique**]{.orange2}
 
 ::: {.callout-note}
-Le package n'est pas toujours le moyen de partage de code le plus adapté
+Aucune donnée n'est pré-calculée côté serveur : la requête tourne dans votre navigateur quand la slide s'affiche.
 :::
 
+## Combien de cultures différentes, par famille ?
 
-# Détour historique {background-color="#2C3E50"}
+```{ojs}
+//| echo: false
+//| output: false
+sqlNCultures = `
+SELECT
+    COALESCE(d.nom_chapitre, 'Non classé') AS famille,
+    COUNT(DISTINCT r.code_cultu) AS n_cultures
+FROM read_parquet('${RPG_URL}') r
+LEFT JOIN dico d ON r.code_cultu = d.code_culture
+WHERE r.code_cultu IS NOT NULL
+GROUP BY 1
+ORDER BY n_cultures DESC
+`
+```
 
-## Par des statisticiens, pour des statisticiens
+```{ojs}
+//| echo: false
+//| output: false
+nCulturesData = db.query(sqlNCultures)
+```
 
-- Usage principal de {{< fa brands r-project >}} : analyser des données, produire des figures et tableaux
-    - Le `data.frame` comme objet central
-    - Un [**nombre limité d'objets**]{.blue2} de base 
+```{ojs}
+//| echo: false
+//| output: false
+nCulturesPlot = Plot.plot({
+  marginLeft: 340,
+  width: 980,
+  height: 420,
+  x: { label: "Nombre de cultures distinctes" },
+  y: { label: null, tickFormat: truncateLabel },
+  marks: [
+    Plot.barX(nCulturesData, {
+      y: "famille",
+      x: "n_cultures",
+      fill: "#4758AB",
+      sort: { y: "-x" }
+    }),
+    Plot.text(nCulturesData, {
+      y: "famille",
+      x: "n_cultures",
+      text: "n_cultures",
+      dx: 18,
+      sort: { y: "-x" }
+    })
+  ]
+})
+```
 
-. . .
+```{ojs}
+//| echo: false
+viewof toggle_ncultures = toggleInput()
+```
 
-- Né dans les années 1990 d'une [**communauté académique de statisticiens**]{.orange2}
+```{ojs}
+//| echo: false
+sqlOrPlot(viewof toggle_ncultures, sqlNCultures, nCulturesPlot)
+```
 
-## Le paradigme de l'interactivité
+## Répartition de la surface par grande famille
 
-* On [**dialogue avec ses données**]{.orange2} (essai/erreur):
-    * Exporte le résultat vers un autre *medium* (e.g. un papier académique)
+```{ojs}
+//| echo: false
+//| output: false
+sqlSurfaceChapitre = `
+SELECT
+    COALESCE(d.nom_chapitre, 'Non classé') AS famille,
+    COUNT(*) AS n_parcelles,
+    SUM(r.area) / 10000 AS surface_ha
+FROM read_parquet('${RPG_URL}') r
+LEFT JOIN dico d ON r.code_cultu = d.code_culture
+GROUP BY 1
+ORDER BY surface_ha DESC
+`
+```
 
-. . .
+```{ojs}
+//| echo: false
+//| output: false
+surfaceChapitreData = db.query(sqlSurfaceChapitre)
+```
 
-* Un choix bien adapté au [**contexte d'origine**]{.orange2}
-    * {{< fa brands r-project >}} souvent enseigné comme premier langage dans un cursus académique
-    * Comme substitut à un outil clique-bouton...
-    * ... Mais [**pas forcément pour la programmation**]{.blue2}.
+```{ojs}
+//| echo: false
+//| output: false
+surfaceChapitrePlot = Plot.plot({
+  marginLeft: 340,
+  width: 980,
+  height: 420,
+  x: { label: "Surface (ha)" },
+  y: { label: null, tickFormat: truncateLabel },
+  marks: [
+    Plot.barX(surfaceChapitreData, {
+      y: "famille",
+      x: "surface_ha",
+      fill: "#ec6842",
+      sort: { y: "-x" }
+    })
+  ]
+})
+```
 
+```{ojs}
+//| echo: false
+viewof toggle_surface_chapitre = toggleInput()
+```
 
-## L'élargissement progressif de la communauté
+```{ojs}
+//| echo: false
+sqlOrPlot(viewof toggle_surface_chapitre, sqlSurfaceChapitre, surfaceChapitrePlot)
+```
 
-* __[Révolution *data*]{.orange2}__:
-    * Succès dans des entreprises proches de la recherche académique en statistiques (là où SAS dominait)
-    * {{< fa brands python >}}: ouvert plus tard à la *data* mais déjà un ancrage dans la communauté *computer science*
+## 
 
-. . .
+:::: {.chat theme="teams" names="Benjamin,parquetGPT"}
 
-* `shiny` (effet wahou), `tidyverse` (grammaire), `RStudio` (IDE tout en un) ont permis à de **[nouveaux profils de se mettre à {{< fa brands r-project >}}]{.orange2}**
-
-## La reproductibilité, notion au centre de l'écosystème {{< fa brands r-project >}}
-
-* Une communauté attachée aux enjeux de [**reproductibilité**]{.orange2}
-    * Influence de la communauté scientifique reste forte
-
-. . .
-
-* Origine de `R Markdown` avant `Quarto` (❤️)
-  * Mieux que les *notebooks* `Jupyter` pour la reproductibilité !
-  * `Quarto`: gros progrès dans le domaine par rapport à {{< fa brands r-project >}} +$\LaTeX$
- 
-
-# {{< fa brands r-project >}} en production ? {background-color="#2C3E50"}
-
-## Un code en production doit être:
-
-* [**Traçable**]{.orange2}: gestion des erreurs, *logs*, monitoring, versionnage
-
-. . .
-
-* [**Portable**]{.orange2}: tourne ailleurs que sur votre machine
-
-. . .
-
-* [**Lisible**]{.orange2}: peut être maintenu par quelqu'un d'autre
-
-. . .
-
-* [**Testable**]{.orange2}: le comportement est vérifié automatiquement
-
-. . .
-
-* [**Reproductible**]{.orange2}: on est capable d'isoler l'effet des changements de code, de configuration ou de données pour reproduire  des résultats
-
-
-## L'interactivité, effet pervers {.smaller}
-
-* En production, [**pas d'IDE**]{.orange2}
-  * Implique d'avoir une [**logique de code différente**]{.blue2} (*logging*, configuration, etc.)
-  * Problème connu dans la communauté {{< fa brands python >}} avec les *notebooks* `Jupyter`
-
-. . .
-
-* Beaucoup de [**configurations passent directement par la session {{< fa brands r-project >}}**]{.orange2} :
-  * `install.packages` vs `pip install`
-  * `renv` vs `uv`
-  * `ruff` vs `styler`
-
-. . .
-
-* Encore une [**culture limitée de la ligne de commande**]{.orange2} (y compris pour `Git` {{< fa brands git-alt >}} )
-  * Effet pervers de l'esprit d'entraide de la communauté {{< fa brands r-project >}} ?
-  * Limite du *un outil pour tout* (ex: interface `Shiny` au lieu de `Quarto` + `Javascript`)
-
-## Quelle différence avec {{< fa brands python >}} ?
-
-* {{< fa brands python >}} [**plus contraignant**]{.orange2} sur la modularité que {{< fa brands r-project >}}
-
-. . .
-
-* Communauté {{< fa brands python >}} [**a changé ses pratiques**]{.orange2} dernièrement:
-  * Moins de `Jupyter` *notebooks*, plus de *linting* (`Ruff`)
-  * Plus de dialogue avec devs, data engineers
-  * Moins de travail en solo
-
-
-::: {.callout-tip}
-## Régulièrement des nouveautés utiles à la production
-
-`argparse` (>=3.2, 2011) `venv` (>=3.3, 2012), `pathlib` (>=3.4, 2014), _type hinting_ (>=3.5, 2015), *f-string* (>=3.6, 2016), `tomllib` et amélioration du *traceback* (>3.11, 2022)...
+::: {.speaker-1}
+Julien est pas impressionné...
 :::
 
-# Conclusion : une histoire d'outils et de pratiques  {background-color="#2C3E50"}
+::: {.speaker-1}
+Il dit qu'il veut faire de la géo
+:::
 
-## {{< fa brands r-project >}} est-il adapté à la production ?
+::::
 
-* [**Techniquement : oui.**]{.orange2}
-    + Les outils nécessaires existent, même s'ils sont moins aboutis qu'en {{< fa brands python >}} ou {{< fa brands js-square >}}.
 
-. . .
+## Top 15 des cultures par surface
 
-* [**Plutôt une histoire d'outils et de pratiques**]{.orange2}:
-  - Faible adoption du [__*linting*__]{.blue2}, des [**environnements virtuels**]{.blue2}
-  - [**Culture CLI**]{.blue2} moins présente
-  - [**Gap plus fort**]{.blue2} avec les profils devs, les *data engineers* 
-  - Culture encore limitée du [**travail collaboratif**]{.blue2}
+```{ojs}
+//| echo: false
+//| output: false
+sqlTopCultures = `
+SELECT
+    COALESCE(d.nom_culture, r.code_cultu) AS culture,
+    r.code_cultu,
+    COUNT(*) AS n_parcelles,
+    SUM(r.area) / 10000 AS surface_ha
+FROM read_parquet('${RPG_URL}') r
+LEFT JOIN dico d ON r.code_cultu = d.code_culture
+WHERE r.code_cultu IS NOT NULL
+GROUP BY 1, 2
+ORDER BY surface_ha DESC
+LIMIT 15
+`
+```
 
-## Références
+```{ojs}
+//| echo: false
+//| output: false
+topCulturesData = db.query(sqlTopCultures)
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+topCulturesPlot = Plot.plot({
+  marginLeft: 340,
+  width: 980,
+  height: 460,
+  x: { label: "Surface (ha)" },
+  y: { label: null, tickFormat: truncateLabel },
+  marks: [
+    Plot.barX(topCulturesData, {
+      y: "culture",
+      x: "surface_ha",
+      fill: "#008A25",
+      sort: { y: "-x" }
+    })
+  ]
+})
+```
+
+```{ojs}
+//| echo: false
+viewof toggle_top_cultures = toggleInput()
+```
+
+```{ojs}
+//| echo: false
+sqlOrPlot(viewof toggle_top_cultures, sqlTopCultures, topCulturesPlot)
+```
+
+## Prochaines étapes
+
+<br>
+
+* Ce deck est [**modulaire**]{.blue2} : chaque slide = 1 requête `SQL` + 1 `Plot`, ajoutés indépendamment
+* Prochain deck : dimension [**géographique**]{.orange2} (RPG et OCS)
+* On statuera plus tard sur une [**séquentialisation**]{.blue2} des decks ou un retour à un site classique

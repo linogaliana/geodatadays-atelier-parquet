@@ -1,0 +1,228 @@
+```{python}
+#| echo: false
+#| output: false
+import duckdb
+
+_con_dico = duckdb.connect()
+
+dico = _con_dico.sql(
+    """
+    SELECT
+        code_culture,
+        nom_culture,
+        num_chapitre,
+        nom_chapitre,
+        categorie_surf_agricole,
+        categorie_ecoregime
+    FROM read_xlsx('./code_culture_2026.xlsx')
+    ORDER BY num_chapitre, code_culture
+    """
+).df().to_dict(orient="records")
+
+ojs_define(dico=dico)
+```
+
+```{ojs}
+//| echo: false
+import {DuckDBClient} from "@observablehq/duckdb"
+```
+
+```{ojs}
+//| echo: false
+RPG_URL = "https://minio.lab.sspcloud.fr/lgaliana/data/geodata-days/rpg_pac_2024_62_comm_v11.parquet"
+```
+
+```{ojs}
+//| echo: false
+db = DuckDBClient.of({ dico: dico })
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Réchauffe le fetch réseau + le cache DuckDB-wasm du parquet dès le
+// chargement du deck, pour que le premier "Tester en live" mesure le temps
+// de requête et non le temps de téléchargement du fichier. Sert aussi à
+// afficher le nombre de lignes scannées en entrée des requêtes.
+warmupRPG = db.query(`SELECT COUNT(*) AS n_input FROM read_parquet('${RPG_URL}') WHERE code_cultu IS NOT NULL`)
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+totalInputRows = Number(Array.from(warmupRPG)[0].n_input)
+```
+
+```{ojs}
+//| echo: false
+function truncateLabel(text, maxLen = 42) {
+  const s = String(text ?? "");
+  return s.length > maxLen ? s.slice(0, maxLen - 1) + "…" : s;
+}
+```
+
+```{ojs}
+//| echo: false
+function toggleInput(defaultValue = false) {
+  const input = html`<input type="checkbox" ${defaultValue ? "checked" : ""}>`;
+  const label = html`<label style="cursor: pointer; user-select: none; font-size: 0.9em;">${input} <span>SQL ⇄ graphique</span></label>`;
+  label.value = input.checked;
+  input.oninput = () => {
+    label.value = input.checked;
+    label.dispatchEvent(new CustomEvent("input"));
+  };
+  return label;
+}
+```
+
+```{ojs}
+//| echo: false
+function sqlOrPlot(toggle, sql, plot) {
+  const container = html`<div></div>`;
+  function render() {
+    container.replaceChildren(toggle.value ? html`<pre><code>${sql}</code></pre>` : plot);
+  }
+  render();
+  toggle.addEventListener("input", render);
+  return container;
+}
+```
+
+```{ojs}
+//| echo: false
+function runLiveButton(label = "Tester en live") {
+  const btn = html`<button type="button" class="run-live-btn" aria-label="${label}" title="${label}">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+  </button>`;
+  btn.value = null;
+  btn.onclick = () => {
+    btn.value = Date.now();
+    btn.dispatchEvent(new CustomEvent("input"));
+  };
+  return btn;
+}
+```
+
+```{ojs}
+//| echo: false
+function searchInput(placeholder = "Rechercher…") {
+  const input = html`<input type="search" class="testlive-search-input" placeholder="${placeholder}">`;
+  input.value = "";
+  return input;
+}
+```
+
+```{ojs}
+//| echo: false
+function frInt(n) {
+  return Number(n).toLocaleString("fr-FR");
+}
+```
+
+```{ojs}
+//| echo: false
+function frNumber(n, decimals = 0) {
+  return Number(n).toLocaleString("fr-FR", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+}
+```
+
+```{ojs}
+//| echo: false
+function barCell(share, color = "#4758AB") {
+  const pct = share * 100;
+  return html`<div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${color}"></div><span class="bar-label">${pct.toFixed(1)}%</span></div>`;
+}
+```
+
+```{ojs}
+//| echo: false
+// Widget autonome "bouton play + timing + recherche + tableau", pour
+// dupliquer facilement une démo "Tester en live" avec une autre requête.
+// mapRow convertit chaque ligne Arrow renvoyée par db.query en objet JS
+// simple ; valueField est la colonne numérique utilisée pour la part (%)
+// affichée dans la colonne "part". extraBar ajoute une 2e colonne barre
+// (une autre couleur) sur un second champ numérique, pour comparer d'un
+// coup d'oeil deux proportions (ex : part des parcelles vs part de la
+// surface).
+function liveQueryDemo({
+  sql,
+  mapRow,
+  valueField,
+  searchFields,
+  columns,
+  header,
+  width,
+  valueFormat = frInt,
+  searchPlaceholder = "🔍 Rechercher…",
+  buttonLabel = "Tester en live",
+  barColor = "#4758AB",
+  extraBar = null,
+  format = {},
+  align = {}
+}) {
+  const btn = runLiveButton(buttonLabel);
+  const search = searchInput(searchPlaceholder);
+  search.style.display = "none";
+  const statusBox = html`<div></div>`;
+  const resultsBox = html`<div></div>`;
+  let currentRows = null;
+
+  function renderStatus(elapsed_ms) {
+    statusBox.replaceChildren(
+      elapsed_ms == null
+        ? html`<p class="testlive-placeholder">Cliquez sur le bouton pour exécuter la requête dans votre navigateur (DuckDB-WASM).</p>`
+        : html`<p class="testlive-timing">⏱️ Temps d'exécution : <strong>${elapsed_ms.toFixed(0)} ms</strong> · ${totalInputRows.toLocaleString("fr-FR")} → ${currentRows.length} lignes</p>`
+    );
+  }
+
+  function renderTable() {
+    const q = search.value.trim().toLowerCase();
+    const rows = !q
+      ? currentRows
+      : currentRows.filter((r) => searchFields.map((f) => r[f]).join(" ").toLowerCase().includes(q));
+    const extraFormat = extraBar
+      ? { [extraBar.key]: (v) => barCell(v, extraBar.color ?? barColor) }
+      : {};
+    resultsBox.replaceChildren(
+      html`<div class="testlive-results">${Inputs.table(rows, {
+        columns,
+        header,
+        width,
+        align: { [valueField]: "right", ...align },
+        format: { [valueField]: valueFormat, part: (v) => barCell(v, barColor), ...extraFormat, ...format },
+        layout: "fixed",
+        rows: 10
+      })}</div>`
+    );
+  }
+
+  renderStatus(null);
+
+  search.addEventListener("input", renderTable);
+
+  btn.addEventListener("input", async () => {
+    const t0 = performance.now();
+    const raw = await db.query(sql);
+    const rows = Array.from(raw, mapRow);
+    const total = d3.sum(rows, (d) => d[valueField]);
+    let withParts = rows.map((d) => ({ ...d, part: total > 0 ? d[valueField] / total : 0 }));
+    if (extraBar) {
+      const totalExtra = d3.sum(rows, (d) => d[extraBar.field]);
+      withParts = withParts.map((d) => ({
+        ...d,
+        [extraBar.key]: totalExtra > 0 ? d[extraBar.field] / totalExtra : 0
+      }));
+    }
+    currentRows = withParts;
+    renderStatus(performance.now() - t0);
+    search.value = "";
+    search.style.display = "";
+    renderTable();
+  });
+
+  return html`<div class="testlive-widget">${btn}${statusBox}${search}${resultsBox}</div>`;
+}
+```
