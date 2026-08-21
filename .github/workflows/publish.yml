@@ -14,6 +14,19 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install jupyter duckdb pandas
+
+      - name: Generate precomputed geo data
+        run: |
+          python3 scripts/generate_quarto_commune_data.py
+          python3 scripts/generate_quarto_full_parcels.py
+
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 
