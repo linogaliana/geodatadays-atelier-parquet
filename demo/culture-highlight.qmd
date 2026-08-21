@@ -1,0 +1,256 @@
+```{ojs}
+//| echo: false
+//| output: false
+// Part de surface par culture (colonne `area`, pas de géométrie/extension
+// spatiale nécessaire ici : requête légère, indépendante du chargement de
+// la carte ci-dessous).
+sqlCultureShare = `
+SELECT
+    COALESCE(d.nom_culture, r.code_cultu) AS nom_culture,
+    SUM(r.area) / 10000 AS surface_ha
+FROM read_parquet('${RPG_URL}') r
+LEFT JOIN dico d ON r.code_cultu = d.code_culture
+WHERE r.code_cultu IS NOT NULL
+GROUP BY 1
+ORDER BY surface_ha DESC
+`
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+cultureShareData = Array.from(await db.query(sqlCultureShare), (d) => ({
+  nom_culture: d.nom_culture,
+  surface_ha: Number(d.surface_ha)
+}))
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+AUTRES_LABEL = "Autres cultures (< 1 % chacune)"
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Cultures représentant au moins 1% de la surface du département, triées
+// par importance décroissante (déjà l'ordre de sqlCultureShare) ; le reste
+// (nombreuses cultures marginales) est regroupé dans une catégorie "Autres"
+// pour garder un sélecteur lisible.
+topCultures = {
+  const total = d3.sum(cultureShareData, (d) => d.surface_ha);
+  return cultureShareData.filter((d) => d.surface_ha / total >= 0.01).map((d) => d.nom_culture);
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+topCultureSet = new Set(topCultures)
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+cultureList = topCultures.length < cultureShareData.length ? [...topCultures, AUTRES_LABEL] : topCultures
+```
+
+:::: {.columns}
+
+::: {.column width="55%"}
+
+```{ojs}
+//| echo: false
+mapAllDiv = {
+  const div = document.createElement("div");
+  div.style.height = "440px";
+  div.style.borderRadius = "8px";
+  div.style.zIndex = "0";
+  return div;
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// mapAll est une carte MapLibre distincte de `map` (slide "Explorer par
+// commune") : sources/layers/ids séparés (parcels-all-*) pour ne pas
+// interférer avec l'autre slide, mais le même import `maplibregl`
+// (demo/common.qmd) est réutilisé.
+mapAll = {
+  const m = new maplibregl.Map({
+    container: mapAllDiv,
+    style: {
+      version: 8,
+      sources: {
+        osm: {
+          type: "raster",
+          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+          tileSize: 256,
+          attribution: "&copy; OpenStreetMap contributors"
+        }
+      },
+      layers: [{ id: "osm", type: "raster", source: "osm" }]
+    },
+    // Emprise fixe du Pas-de-Calais (mêmes bornes que la carte brute du site
+    // Observable), pas besoin de recadrer dynamiquement ici.
+    bounds: [[1.5629901, 50.0198391], [3.188217, 51.0068167]]
+  });
+  m.addControl(new maplibregl.NavigationControl());
+  return m;
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+mapAllReady = new Promise((resolve) => {
+  mapAll.on("load", () => {
+    mapAll.addSource("parcels-all", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    mapAll.addLayer({
+      id: "parcels-all-fill",
+      type: "fill",
+      source: "parcels-all",
+      paint: { "fill-color": "#c9c9c2", "fill-opacity": 0.25 }
+    });
+    mapAll.addLayer({
+      id: "parcels-all-line",
+      type: "line",
+      source: "parcels-all",
+      paint: { "line-color": "#20201d", "line-width": 0.15, "line-opacity": 0.25 }
+    });
+
+    const popup = new maplibregl.Popup({ closeButton: false });
+    mapAll.on("mousemove", "parcels-all-fill", (e) => {
+      mapAll.getCanvas().style.cursor = "pointer";
+      const f = e.features[0];
+      popup
+        .setLngLat(e.lngLat)
+        .setHTML(`<strong>${f.properties.nom_culture}</strong><br>${Number(f.properties.surface_ha).toFixed(2)} ha`)
+        .addTo(mapAll);
+    });
+    mapAll.on("mouseleave", "parcels-all-fill", () => {
+      mapAll.getCanvas().style.cursor = "";
+      popup.remove();
+    });
+
+    mapAll.resize();
+    resolve();
+  });
+})
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Chargement complet (une seule fois, dès que la carte est prête) : la
+// géométrie de tout le département — précalculée (voir
+// scripts/generate_quarto_full_parcels.py ; même raison qu'"Explorer par
+// commune" : l'extension spatiale ne se charge pas de façon fiable dans
+// DuckDB-wasm avec le DuckDBClient bundlé) — est récupérée puis posée sur
+// la source MapLibre. Ensuite, changer la culture sélectionnée (viewof
+// cultureSel, colonne de droite) ne relance aucun fetch : c'est juste un
+// repaint MapLibre sur les données déjà en mémoire dans le navigateur — le
+// "calcul fluide" de ce slide.
+allParcelsData = {
+  await mapAllReady;
+  const t0 = performance.now();
+  const fc = await fetch("data/parcelles-full.geojson").then((r) => r.json());
+  const rows = fc.features.map((f) => {
+    const meta = dicoByCode.get(f.properties.k);
+    return {
+      code_cultu: f.properties.k,
+      nom_culture: meta?.nom_culture ?? f.properties.k,
+      surface_ha: f.properties.s,
+      geometry: f.geometry
+    };
+  });
+  const geojson = {
+    type: "FeatureCollection",
+    features: rows.map((r) => ({
+      type: "Feature",
+      geometry: r.geometry,
+      properties: { code_cultu: r.code_cultu, nom_culture: r.nom_culture, surface_ha: r.surface_ha }
+    }))
+  };
+  mapAll.getSource("parcels-all").setData(geojson);
+  return { rows, geojson, elapsed_ms: performance.now() - t0 };
+}
+```
+
+```{ojs}
+//| echo: false
+{
+  if (allParcelsData == null) {
+    return html`<p class="testlive-placeholder">Chargement des ${totalInputRows.toLocaleString("fr-FR")} parcelles du département…</p>`;
+  }
+  // Le timing affiché ici est celui du dernier surlignage (updateAllMapHighlight),
+  // pas celui du chargement des données : c'est la partie "fluide" qu'on veut
+  // montrer — changer de culture ne relance ni fetch ni requête.
+  return html`<p class="testlive-timing">⏱️ Surlignage recalculé en <strong>${updateAllMapHighlight.toFixed(2)} ms</strong> · ${allParcelsData.rows.length.toLocaleString("fr-FR")} parcelles en mémoire</p>`;
+}
+```
+
+:::
+
+::: {.column width="45%"}
+
+```{ojs}
+//| echo: false
+viewof cultureSel = Inputs.select(cultureList, { label: "Culture à surligner", value: "Blé tendre" })
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+updateAllMapHighlight = {
+  await mapAllReady;
+  if (allParcelsData == null) return 0;
+  const t0 = performance.now();
+  const isSelected = cultureSel === AUTRES_LABEL
+    ? ["!", ["in", ["get", "nom_culture"], ["literal", topCultures]]]
+    : ["==", ["get", "nom_culture"], cultureSel];
+  mapAll.setPaintProperty("parcels-all-fill", "fill-color", ["case", isSelected, "#ec6842", "#c9c9c2"]);
+  mapAll.setPaintProperty("parcels-all-fill", "fill-opacity", ["case", isSelected, 0.85, 0.15]);
+  mapAll.setPaintProperty("parcels-all-line", "line-color", ["case", isSelected, "#7a2f10", "#20201d"]);
+  mapAll.setPaintProperty("parcels-all-line", "line-opacity", ["case", isSelected, 0.9, 0.15]);
+  return performance.now() - t0;
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+selectedCultureStats = {
+  updateAllMapHighlight;
+  if (allParcelsData == null) return null;
+  const rows = allParcelsData.rows;
+  const totalSurface = d3.sum(rows, (d) => d.surface_ha);
+  const selRows = cultureSel === AUTRES_LABEL
+    ? rows.filter((d) => !topCultureSet.has(d.nom_culture))
+    : rows.filter((d) => d.nom_culture === cultureSel);
+  const surface = d3.sum(selRows, (d) => d.surface_ha);
+  return { n: selRows.length, surface, part: totalSurface > 0 ? surface / totalSurface : 0 };
+}
+```
+
+```{ojs}
+//| echo: false
+{
+  if (selectedCultureStats == null) {
+    return html`<p class="testlive-placeholder">En attente du chargement de la carte…</p>`;
+  }
+  const s = selectedCultureStats;
+  return html`<div class="highlight-stats">
+    <div class="stat-value">${s.n.toLocaleString("fr-FR")}</div>
+    <div class="stat-label">parcelles de « ${cultureSel} »</div>
+    <div class="stat-value">${frNumber(s.surface, 0)} ha</div>
+    <div class="stat-label">soit ${(s.part * 100).toFixed(1)} % de la surface du département</div>
+  </div>`;
+}
+```
+
+:::
+
+::::

@@ -1,0 +1,245 @@
+```{ojs}
+//| echo: false
+//| output: false
+// Géométries des parcelles précalculées par commune (voir
+// scripts/generate_quarto_commune_data.py) : DuckDB-wasm dans le navigateur
+// ne parvient pas à charger l'extension spatiale de façon fiable avec le
+// DuckDBClient bundlé (version trop ancienne côté Observable), donc la
+// reprojection Lambert-93 -> WGS84 est faite une fois, au moment du rendu.
+communeSlugs = fetch("data/communes/index.json").then((r) => r.json())
+```
+
+```{ojs}
+//| echo: false
+viewof communeSel = Inputs.select(Object.keys(communeSlugs).sort(), { label: "Commune", value: "Arras" })
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+familyColor = d3.scaleOrdinal(
+  [...new Set(dico.map((d) => d.nom_chapitre))].sort(),
+  d3.schemeTableau10.concat(d3.schemeSet3)
+)
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Parcourt récursivement un tableau de coordonnées GeoJSON (Polygon ou
+// MultiPolygon) pour calculer une bounding box, sans dépendance à turf.
+function geojsonBounds(fc) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  function visit(coords) {
+    if (typeof coords[0] === "number") {
+      const [x, y] = coords;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    } else {
+      coords.forEach(visit);
+    }
+  }
+  fc.features.forEach((f) => visit(f.geometry.coordinates));
+  return [[minX, minY], [maxX, maxY]];
+}
+```
+
+:::: {.columns}
+
+::: {.column width="55%"}
+
+```{ojs}
+//| echo: false
+mapDiv = {
+  const div = document.createElement("div");
+  div.style.height = "440px";
+  div.style.borderRadius = "8px";
+  div.style.zIndex = "0";
+  return div;
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+map = {
+  const m = new maplibregl.Map({
+    container: mapDiv,
+    style: {
+      version: 8,
+      sources: {
+        osm: {
+          type: "raster",
+          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+          tileSize: 256,
+          attribution: "&copy; OpenStreetMap contributors"
+        }
+      },
+      layers: [{ id: "osm", type: "raster", source: "osm" }]
+    },
+    center: [2.5, 50.4],
+    zoom: 9
+  });
+  m.addControl(new maplibregl.NavigationControl());
+  return m;
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Résolu une fois le style de base chargé : source + calques des parcelles,
+// et le mouseover (popup) sur la couche de remplissage.
+mapReady = new Promise((resolve) => {
+  map.on("load", () => {
+    map.addSource("parcels", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({
+      id: "parcels-fill",
+      type: "fill",
+      source: "parcels",
+      paint: { "fill-color": ["get", "color"], "fill-opacity": 0.75 }
+    });
+    map.addLayer({
+      id: "parcels-line",
+      type: "line",
+      source: "parcels",
+      paint: { "line-color": "#20201d", "line-width": 0.4, "line-opacity": 0.6 }
+    });
+
+    const popup = new maplibregl.Popup({ closeButton: false });
+    map.on("mousemove", "parcels-fill", (e) => {
+      map.getCanvas().style.cursor = "pointer";
+      const f = e.features[0];
+      popup
+        .setLngLat(e.lngLat)
+        .setHTML(`<strong>${f.properties.nom_culture}</strong><br>${Number(f.properties.surface_ha).toFixed(2)} ha`)
+        .addTo(map);
+    });
+    map.on("mouseleave", "parcels-fill", () => {
+      map.getCanvas().style.cursor = "";
+      popup.remove();
+    });
+
+    map.resize();
+    resolve();
+  });
+})
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// La géométrie ne peut pas venir d'un simple GROUP BY : dessiner un contour
+// de parcelle nécessite la forme réelle, donc le fichier précalculé
+// (communeSlugs / data/communes/*.geojson) reste la seule source possible
+// ici, indépendamment du barplot ci-contre qui n'en a lui pas besoin.
+communeGeo = {
+  const slug = communeSlugs[communeSel];
+  const fc = await fetch(`data/communes/${slug}.geojson`).then((r) => r.json());
+  return {
+    type: "FeatureCollection",
+    features: fc.features.map((f) => {
+      const meta = dicoByCode.get(f.properties.k);
+      const nom_chapitre = meta?.nom_chapitre ?? "Non classé";
+      return {
+        type: "Feature",
+        geometry: f.geometry,
+        properties: {
+          nom_culture: meta?.nom_culture ?? f.properties.k,
+          nom_chapitre,
+          surface_ha: f.properties.s,
+          color: familyColor(nom_chapitre)
+        }
+      };
+    })
+  };
+}
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Met à jour la source à chaque changement de commune et recadre la carte.
+updateMap = {
+  await mapReady;
+  map.getSource("parcels").setData(communeGeo);
+  const bounds = geojsonBounds(communeGeo);
+  if (Number.isFinite(bounds[0][0])) {
+    map.fitBounds(bounds, { padding: 24, maxZoom: 15, duration: 300 });
+  }
+  return true;
+}
+```
+
+```{ojs}
+//| echo: false
+{
+  updateMap;
+  return html`<p class="testlive-timing">⏱️ Requête SQL : <strong>${communeStats.elapsed_ms.toFixed(0)} ms</strong> · ${communeGeo.features.length} parcelles affichées — ${communeSel}</p>`;
+}
+```
+
+:::
+
+::: {.column width="45%"}
+
+```{ojs}
+//| echo: false
+//| output: false
+// Contrairement à la géométrie de la carte, ceci n'a pas besoin de spatial :
+// juste un filtre par commune + GROUP BY culture, comme les autres slides
+// "Test live" du deck — donc requête SQL live, pas de fichier précalculé.
+sqlCommuneStats = (commune) => `
+SELECT
+    COALESCE(d.nom_culture, r.code_cultu) AS nom_culture,
+    COALESCE(d.nom_chapitre, 'Non classé') AS nom_chapitre,
+    COUNT(*) AS n,
+    SUM(r.area) / 10000 AS surface_ha
+FROM read_parquet('${RPG_URL}') r
+LEFT JOIN dico d ON r.code_cultu = d.code_culture
+WHERE r.nom_officiel = '${commune.replace(/'/g, "''")}'
+GROUP BY 1, 2
+ORDER BY surface_ha DESC
+`
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+communeStats = {
+  const t0 = performance.now();
+  const raw = await db.query(sqlCommuneStats(communeSel));
+  const rows = Array.from(raw, (d) => ({
+    nom_culture: d.nom_culture,
+    nom_chapitre: d.nom_chapitre,
+    n: Number(d.n),
+    surface_ha: Number(d.surface_ha)
+  }));
+  return { rows, barRows: rows.slice(0, 12), elapsed_ms: performance.now() - t0 };
+}
+```
+
+```{ojs}
+//| echo: false
+Plot.plot({
+  marginLeft: 220,
+  width: 480,
+  height: 440,
+  x: { label: "Surface (ha)" },
+  y: { label: null, tickFormat: truncateLabel },
+  marks: [
+    Plot.barX(communeStats.barRows, {
+      y: "nom_culture",
+      x: "surface_ha",
+      fill: "#008A25",
+      sort: { y: "-x" }
+    })
+  ]
+})
+```
+
+:::
+
+::::

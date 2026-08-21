@@ -173,7 +173,7 @@ function liveQueryDemo({
   function renderStatus(elapsed_ms) {
     statusBox.replaceChildren(
       elapsed_ms == null
-        ? html`<p class="testlive-placeholder">Cliquez sur le bouton pour exécuter la requête dans votre navigateur (DuckDB-WASM).</p>`
+        ? html`<p class="testlive-placeholder">Lancer la démo live.</p>`
         : html`<p class="testlive-timing">⏱️ Temps d'exécution : <strong>${elapsed_ms.toFixed(0)} ms</strong> · ${totalInputRows.toLocaleString("fr-FR")} → ${currentRows.length} lignes</p>`
     );
   }
