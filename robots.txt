@@ -1,0 +1,1 @@
+Sitemap: https://linogaliana.github.io/geodatadays-atelier-parquet/sitemap.xml
