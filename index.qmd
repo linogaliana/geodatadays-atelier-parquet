@@ -47,7 +47,7 @@ Je suppose que RPG = **registre parcellaire graphique** et pas *role playing gam
 :::
 
 ::: {.speaker-2 .fragment .typing}
-C'est facile si la donnée est en `Parquet` sur un *cloud* de type `S3`. 
+C'est facile si la donnée est en `Parquet` accessible depuis le *cloud*. 
 :::
 
 
