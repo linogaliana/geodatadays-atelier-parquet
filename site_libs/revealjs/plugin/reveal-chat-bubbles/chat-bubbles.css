@@ -538,3 +538,346 @@
   padding: 2px 7px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
+
+/* ==========================================================================
+   Theme: Claude Code
+
+   A dark terminal transcript in a monospace face: a single left-aligned
+   column, the human's turns shown as `>` prompt lines inside an input box,
+   and the assistant ("parquetGPT") shown with a small logo avatar that
+   blinks while it is thinking / streaming.
+
+   Roles:
+     - the human is the `self` slot (slot 1 by default)
+     - the assistant is the `assistant` slot (slot 2 by default); set it
+       explicitly with assistant="N" on .chat or <meta name="chat-assistant">
+   Names come from `names=` / <meta name="chat-names"> — first is the
+   person, second is the assistant. Only the assistant's replies stream in
+   progressively.
+
+   Override the blinking avatar for a different assistant with, on .chat:
+     style="--cc-logo: url('my-logo.svg')"
+   ========================================================================== */
+
+[data-chat-theme="claude-code"] {
+  --cc-bg:      #1a1b26;
+  --cc-surface: #1e1f2e;
+  --cc-code:    #16161e;
+  --cc-fg:      #c0caf5;
+  --cc-dim:     #565f89;
+  --cc-bright:  #e0e6ff;
+  --cc-accent:  #d97757; /* shell-prompt coral */
+  --cc-assistant: #50abf1; /* parquetGPT blue, matches the logo */
+  --cc-link:    #7aa2f7;
+  --cc-border:  #3b3d57;
+  --cc-code-ink: #c8d3f5;
+
+  /* parquetGPT avatar — the Parquet file icon (vscode-icons, MIT) */
+  --cc-logo: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgMzIgMzIiPjxwYXRoIGZpbGw9IiM1MGFiZjEiIGQ9Ik0xNC42NyAyNi42MDRjLTEuMDE1LTEuMjE4LTEuMTE2LTEuMzItMS4wMTUtMS41MjJMMjcuODYxIDExLjE4Yy4xMDItLjEwMiAxLjgyNy43MSAyLjEzMSAxLjExNmMuMjAzLjIwMy0xLjAxNSAxLjQyLTYuNzk5IDcuOTE1bC03LjEwMyA3LjcxMnMtLjgxMS0uNjA5LTEuNDItMS4zMm0tMy4xNDYtMy4zNDhsLTEuMDE1LTEuMzE5Yy4xMDItLjIwMyA3LjkxNS03LjAwMSA4LjExOC03LjAwMWMuMTAyIDAgMi4wMyAxLjUyMiAyLjAzIDEuNzI0YzAgLjIwMy03LjkxNSA3LjYxMS04LjExOCA3LjYxMXptLTIuNzQtMy4yNDdxLS44MTEtMS4wMTUtLjcxLTEuMTE2bDMuODU2LTIuODQxbDEuNzI1IDEuNjIzYzAgLjIwMy0zLjY1MyAzLjI0Ny0zLjg1NiAzLjI0N3EtLjMwNCAwLTEuMDE1LTEuMDE0TTYuNDUgMTcuMzdxLTEuMDE0LS45MTMtLjYwOC0xLjAxNWwxMS4xNjItNy44MTNjLjIwMiAwIDEuNzI1IDEuMDE0IDEuNzI1IDEuMTE2TDcuMzY0IDE4LjI4M3ptNy4zMDYtMS4xMTZxLS44MTEtLjcxLS44MTEtMS4wMTVsLjgxMS0uNzFsNC43Ny0zLjY1M2w0LjA1OS0zLjA0NWMuMzA0IDAgMS44MjYgMS4wMTUgMS43MjUgMS4wMTVjMCAuMzA1LTkuNDM3IDguMTE4LTkuNjQgOC4xMTh6bS05LjMzNS0xLjIxOHEtLjcxLS43MS0uNDA2LS45MTNsNy42MS00Ljc3YTQuMDYgNC4wNiAwIDAgMSAxLjQyMSAxLjExN2E4MCA4MCAwIDAgMS04LjAxNiA1LjQ4em0xNi4yMzYgMGwtMS4wMTUtLjgxMmw1LjM3OC00Ljc2OXEuMTAyLS4zMDQgMS4yMTguMzA0bDEuMDE1LjcxYTcwIDcwIDAgMCAxLTUuNTgxIDUuMjc3em0tMTcuOTYxLTIuMDNsLS43MS0uNzFsLjMwNC0uMjAzbDcuMTAzLTQuMTZsNi40OTUtMy44NTZsLjYwOC4zMDRsLjcxLjUwOGMwIC4xMDEtMTQuMDAyIDguOTMtMTQuMjA1IDguOTN6bTEwLjE0Ny0zLjQ1cS0uNjA5LS40MDUtLjYwOS0uNjA4cS4yMDMtLjQwNiAyLjg0MS0yLjAzbDIuODQyLTEuNjI0bC43MS40MDZsLjcxLjUwOGMwIC4yMDMtNS41OCAzLjk1Ny01Ljc4NCAzLjk1N3ptNS42ODItLjgxMWwtLjcxLS42MWwyLjMzNC0xLjYyM2wxLjUyMi45MTNsLS4yMDMuMzA1Yy0uMzA0LjQwNi0yLjAzIDEuNTIyLTIuMDMgMS41MjJ6Ii8+PC9zdmc+");
+
+  --chat-gap: 0.7rem;
+  --chat-pad: 1rem 1.3rem 1.2rem;
+  background: var(--cc-bg);
+  border-radius: 8px;
+  color: var(--cc-fg);
+  font-family: "SF Mono", "Cascadia Code", "Fira Code", "JetBrains Mono", "Menlo", Consolas, monospace;
+  font-size: 0.78em;
+  line-height: 1.6;
+}
+
+/* Welcome banner, like the box a CLI agent prints on startup. The JS fills in
+   the assistant's name; override per deck with `welcome="..."` on .chat. */
+[data-chat-theme="claude-code"]::before {
+  content: "\2731  parquetGPT";
+  display: block;
+  flex-shrink: 0;
+  margin-bottom: 0.5rem;
+  padding: 0.6em 0.9em;
+  border: 1px solid var(--cc-assistant);
+  border-radius: 6px;
+  color: var(--cc-assistant);
+  font-size: 0.92em;
+}
+
+[data-chat-theme="claude-code"][data-welcome]::before {
+  content: attr(data-welcome);
+}
+
+[data-chat-theme="claude-code"][welcome]::before {
+  content: attr(welcome);
+}
+
+[data-chat-theme="claude-code"] [data-slot] {
+  display: grid;
+  grid-template-columns: 1.3em minmax(0, 1fr);
+  grid-template-areas:
+    "marker name"
+    "marker text"
+    "marker reactions";
+  column-gap: 0.4em;
+  align-self: stretch;
+  max-width: 100%;
+}
+
+[data-chat-theme="claude-code"] .bubble-avatar {
+  display: none;
+}
+
+/* Marker column: `>` prompt for the person, blinking logo for the assistant,
+   `⏺` for anyone else. */
+[data-chat-theme="claude-code"] [data-slot]::before {
+  grid-area: marker;
+  color: var(--cc-accent);
+  font-weight: 700;
+}
+
+[data-chat-theme="claude-code"] [data-slot]:not([data-self]):not([data-assistant])::before {
+  content: "\23FA"; /* ⏺ */
+}
+
+[data-chat-theme="claude-code"] [data-self]::before {
+  content: ">";
+}
+
+[data-chat-theme="claude-code"] [data-assistant]::before {
+  content: none;
+}
+
+[data-chat-theme="claude-code"] [data-assistant] .bubble-avatar {
+  display: block;
+  grid-area: marker;
+  width: 1.15em;
+  height: 1.15em;
+  margin-top: 0.1em;
+  background-color: transparent;
+  background-image: var(--cc-logo);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  border-radius: 0;
+  color: transparent; /* hide the auto initial letter */
+  overflow: hidden;
+}
+
+@keyframes cc-logo-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.15; }
+}
+
+/* Blink while waiting for the reply and while it streams in */
+[data-chat-theme="claude-code"] [data-assistant].is-typing:not(.text-revealed) .bubble-avatar,
+[data-chat-theme="claude-code"] [data-assistant].cc-streaming .bubble-avatar {
+  animation: cc-logo-blink 1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-chat-theme="claude-code"] [data-assistant] .bubble-avatar {
+    animation: none;
+  }
+}
+
+[data-chat-theme="claude-code"] .bubble-name {
+  display: block;
+  grid-area: name;
+  margin-bottom: 0.15em;
+  font-size: 0.85em;
+  color: var(--cc-dim);
+}
+
+[data-chat-theme="claude-code"] [data-assistant] .bubble-name {
+  color: var(--cc-assistant);
+}
+
+[data-chat-theme="claude-code"] .bubble-text {
+  grid-area: text;
+  color: var(--cc-fg);
+}
+
+[data-chat-theme="claude-code"] [data-assistant] .bubble-text {
+  color: var(--cc-bright);
+}
+
+/* The person's turn sits inside an input box, like the CLI prompt */
+[data-chat-theme="claude-code"] [data-self] {
+  padding: 0.5em 0.7em;
+  border: 1px solid var(--cc-border);
+  border-radius: 6px;
+}
+
+[data-chat-theme="claude-code"] [data-self] .bubble-text {
+  color: var(--cc-bright);
+}
+
+/* Consecutive turns from the same speaker: drop the name, tighten the gap */
+[data-chat-theme="claude-code"] [data-continues] {
+  margin-top: -0.35rem;
+}
+
+[data-chat-theme="claude-code"] [data-continues] .bubble-name {
+  display: none;
+}
+
+/* Prose */
+[data-chat-theme="claude-code"] .bubble-text p {
+  margin: 0.35em 0;
+}
+
+[data-chat-theme="claude-code"] .bubble-text p:first-child { margin-top: 0; }
+[data-chat-theme="claude-code"] .bubble-text p:last-child  { margin-bottom: 0; }
+
+[data-chat-theme="claude-code"] .bubble-text a {
+  color: var(--cc-link);
+  text-decoration: underline;
+}
+
+[data-chat-theme="claude-code"] .bubble-text strong {
+  color: var(--cc-bright);
+}
+
+/* Inline code — the `.reveal` prefix and explicit colour are needed to beat
+   the Quarto theme's `section.has-dark-background code` / `.reveal code`
+   rules, which otherwise leave it dark-on-dark. Orange reads clearly on the
+   dark surface, including inside a link (where the blue link colour would
+   otherwise swallow it). */
+.reveal [data-chat-theme="claude-code"] .bubble-text code,
+.reveal [data-chat-theme="claude-code"] .bubble-text a code {
+  background: rgba(255, 158, 100, 0.15);
+  color: #ff9e64;
+  padding: 0.05em 0.35em;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+
+/* Keep the "this is a link" cue subtle so the orange still leads */
+.reveal [data-chat-theme="claude-code"] .bubble-text a:has(code) {
+  text-decoration-color: rgba(255, 158, 100, 0.55);
+}
+
+[data-chat-theme="claude-code"] .bubble-text div.sourceCode {
+  margin: 0.5em 0;
+  background: transparent;
+}
+
+.reveal [data-chat-theme="claude-code"] .bubble-text pre {
+  width: 100%;
+  margin: 0.5em 0;
+  padding: 0.7em 0.9em;
+  background: var(--cc-code);
+  border: 1px solid var(--cc-border);
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.82em;
+}
+
+.reveal [data-chat-theme="claude-code"] .bubble-text pre code,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre.sourceCode code {
+  background: none;
+  padding: 0;
+  color: var(--cc-code-ink);
+}
+
+/* Unclassed tokens (identifiers, column names…) — Quarto's default is a dark
+   navy that vanishes on the dark surface. */
+.reveal [data-chat-theme="claude-code"] .bubble-text pre code span {
+  color: var(--cc-code-ink);
+}
+
+/* Line-number gutter links must not pick up the prose link styling */
+.reveal [data-chat-theme="claude-code"] .bubble-text pre a {
+  color: var(--cc-dim);
+  text-decoration: none;
+}
+
+/* Syntax highlighting, retinted for the dark surface (tokyo-night-ish) */
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .co { color: #565f89; font-style: italic; }
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .kw,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .cf { color: #bb9af7; }
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .fu,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .im { color: #7aa2f7; }
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .st,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .sc,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .ch,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .ss,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .at,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .vs { color: #9ece6a; }
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .dv,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .bn,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .fl { color: #ff9e64; }
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .op { color: #89ddff; }
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .dt,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .va,
+.reveal [data-chat-theme="claude-code"] .bubble-text pre .cn { color: #e0af68; }
+
+[data-chat-theme="claude-code"] .bubble-text ul,
+[data-chat-theme="claude-code"] .bubble-text ol {
+  margin: 0.35em 0;
+  padding-left: 1.4em;
+}
+
+/* Typing indicator reads as Claude "thinking" */
+[data-chat-theme="claude-code"] .typing-indicator {
+  grid-area: text;
+}
+
+[data-chat-theme="claude-code"] .typing-indicator span {
+  background: var(--cc-assistant);
+}
+
+[data-chat-theme="claude-code"] [data-self] .typing-indicator span {
+  background: var(--cc-dim);
+}
+
+/* Typewriter reveal: prose streams in word by word, blocks fade in whole */
+[data-chat-theme="claude-code"] .tw-word.tw-pending,
+[data-chat-theme="claude-code"] .tw-block.tw-pending {
+  display: none;
+}
+
+[data-chat-theme="claude-code"] .tw-word {
+  animation: cc-tw-word-in 0.24s ease both;
+}
+
+[data-chat-theme="claude-code"] .tw-block {
+  animation: cc-tw-block-in 0.3s ease both;
+}
+
+/* A paragraph / list item whose words are all still pending takes up no room
+   until its first word lands. */
+[data-chat-theme="claude-code"] .bubble-text p:has(.tw-word):not(:has(.tw-word:not(.tw-pending))),
+[data-chat-theme="claude-code"] .bubble-text li:has(.tw-word):not(:has(.tw-word:not(.tw-pending))),
+[data-chat-theme="claude-code"] .bubble-text a:has(.tw-word):not(:has(.tw-word:not(.tw-pending))) {
+  display: none;
+}
+
+@keyframes cc-tw-word-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes cc-tw-block-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-chat-theme="claude-code"] .tw-word,
+  [data-chat-theme="claude-code"] .tw-block {
+    animation: none;
+  }
+}
+
+/* Reactions in the flow, like the flat themes */
+[data-chat-theme="claude-code"] .bubble-reactions {
+  position: static;
+  grid-area: reactions;
+  margin-top: 0.3em;
+  min-height: var(--reaction-pill-height);
+}
+
+[data-chat-theme="claude-code"] .reaction-pill {
+  background: var(--cc-surface);
+  border-color: var(--cc-border);
+  border-radius: 6px;
+  color: var(--cc-fg);
+  box-shadow: none;
+}

@@ -33,12 +33,56 @@
     color: #4758AB;
 }
 
+/* --- Slides de chat "Claude Code" : fond sombre pour l'incrustation --- */
+.reveal .slide-chat h2,
+.reveal section.has-dark-background h2 {
+    color: #e0e6ff;
+}
+.reveal .slide-chat,
+.reveal .slide-chat p,
+.reveal .slide-chat li {
+    color: #c0caf5;
+}
+.reveal .slide-chat a {
+    color: #7aa2f7;
+}
+.reveal.has-dark-background .footer,
+.reveal.has-dark-background .slide-number,
+.reveal:has(section.present.has-dark-background) .footer,
+.reveal:has(section.present.has-dark-background) .slide-number {
+    color: #c0caf5;
+}
+
 .green2, .green2 code, .green2 a { color: #008A25!important; }
 .red2, .red2 code, .red2 a { color: #EE0220!important; }
 .blue2, .blue2 code, .blue2 a { color: #4758AB!important; }
+.blue, .blue code, .blue a { color: #1a53a8!important; }
 .orange2, .orange2 code, .orange2 a { color: #ec6842!important; }
+
+/* --- Footer vert sur les slides blanches (fond clair uniquement) --- */
+.reveal .footer {
+    color: #6cae3a;
+    font-weight: bold;
+}
+
+/* --- Page de titre : titre bleu + logo --- */
+.reveal #title-slide .title {
+    color: #1a53a8;
+}
+.reveal #title-slide::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 130px;
+    height: 220px;
+    background: url('img/logo-geodatadays.png') no-repeat center center;
+    background-size: contain;
+    pointer-events: none;
+}
 .quarto-title-author-name  {
-    color: #ec6842;
+    color: #000;
     font-weight: bold;
 }
 
@@ -49,6 +93,12 @@
 
 .reveal .subtitle {
     font-size: 0.9em !important;
+    color: #6cae3a;
+    font-weight: bold;
+}
+
+.reveal #title-slide .date {
+    font-size: 0.7em;
 }
 
 html.print-pdf .reveal .footer {

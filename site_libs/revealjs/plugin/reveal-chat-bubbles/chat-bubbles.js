@@ -35,6 +35,13 @@ window.RevealChatBubbles = function () {
         return (value || '').split(',').map(s => s.trim());
       }
 
+      // Deck-wide default, set once via <meta name="chat-names" content="A,B">
+      // (and the matching chat-avatars). A .chat with its own names= wins.
+      function meta(name) {
+        const el = document.querySelector('meta[name="' + name + '"]');
+        return el ? el.getAttribute('content') : '';
+      }
+
       // Every message gets the same scaffolding regardless of theme, so that a
       // theme is a CSS-only addition. Themes that want no avatar simply hide it.
       function scaffold(el, name, avatarUrl) {
@@ -77,9 +84,27 @@ window.RevealChatBubbles = function () {
         // instead of a chain of :not() negations that grows with each theme.
         chat.dataset.chatTheme = attr(chat, 'theme') || 'imessage';
 
-        // Roster maps positionally onto slots: names="a,b,c" -> slots 1,2,3
-        const names = splitList(attr(chat, 'names'));
-        const avatars = splitList(attr(chat, 'avatars'));
+        // Roster maps positionally onto slots: names="a,b,c" -> slots 1,2,3.
+        // A chat with no names= of its own inherits a deck-wide default from
+        // <body data-chat-names="...">, so the speaker names can be set once
+        // for the whole presentation.
+        const names = splitList(attr(chat, 'names') || meta('chat-names'));
+        const avatars = splitList(attr(chat, 'avatars') || meta('chat-avatars'));
+
+        // The assistant slot — the one whose replies stream in and whose
+        // avatar blinks. Defaults to slot 2 for the claude-code theme (or the
+        // other slot if the human was moved there); no assistant otherwise.
+        const isClaudeCode = chat.dataset.chatTheme === 'claude-code';
+        const assistant = parseInt(attr(chat, 'assistant') || meta('chat-assistant')) ||
+          (isClaudeCode ? (self === 2 ? 1 : 2) : 0);
+        chat.dataset.assistantSlot = assistant;
+
+        // Default the CLI welcome banner to the assistant's name.
+        const assistantName = names[assistant - 1] || '';
+        if (isClaudeCode && assistantName &&
+            !attr(chat, 'welcome') && !chat.dataset.welcome) {
+          chat.dataset.welcome = '✱  ' + assistantName;
+        }
 
         let previousSlot = null;
         Array.from(chat.children).forEach(el => {
@@ -90,6 +115,7 @@ window.RevealChatBubbles = function () {
           // not of the class name, so alternating themes read this rather than
           // inferring a side from the slot number.
           if (slot === self) el.dataset.self = '';
+          if (slot === assistant) el.dataset.assistant = '';
 
           const name = attr(el, 'name') || names[slot - 1] || '';
           if (name) el.dataset.speaker = name;
@@ -219,13 +245,166 @@ window.RevealChatBubbles = function () {
       // `knownHeight` exists for callers that are mid-animation, where the
       // bubble's measured height is the *start* of a transition rather than
       // where it will end up.
-      function scrollBubbleIntoView(chat, bubble, knownHeight) {
+      function scrollBubbleIntoView(chat, bubble, knownHeight, smooth) {
         const height = knownHeight === undefined ? bubble.offsetHeight : knownHeight;
         const bubbleBottom = bubble.offsetTop + height;
         const visibleBottom = chat.scrollTop + chat.clientHeight - buffer;
         if (bubbleBottom > visibleBottom) {
-          chat.scrollTo({ top: bubbleBottom - chat.clientHeight + buffer, behavior: 'smooth' });
+          chat.scrollTo({
+            top: bubbleBottom - chat.clientHeight + buffer,
+            behavior: smooth === false ? 'auto' : 'smooth'
+          });
         }
+      }
+
+      // ----------------------------------------------------------------------
+      // Typewriter reveal (claude-code theme, assistant turns only)
+      //
+      // Instead of swapping the assistant's typing bubble straight to its full
+      // text, stream the prose in word by word — the way a chat model's output
+      // lands — while block elements (code, images) fade in whole. Fully
+      // reversible: stepping the fragment back re-hides every unit and the
+      // dots return. The human's own turns never stream.
+      // ----------------------------------------------------------------------
+
+      function buildTypewriter(bubble) {
+        if (bubble._tw) return bubble._tw;
+        const textEl = bubble.querySelector('.bubble-text');
+        const units = [];
+
+        function walk(node) {
+          Array.from(node.childNodes).forEach(child => {
+            if (child.nodeType === 3) {
+              if (!child.textContent.trim()) return;
+              // Split into words, keeping the whitespace runs as bare text
+              // nodes so spacing survives while neighbouring words are hidden.
+              const pieces = child.textContent.split(/(\s+)/);
+              const frag = document.createDocumentFragment();
+              pieces.forEach(piece => {
+                if (piece === '') return;
+                if (/^\s+$/.test(piece)) {
+                  frag.appendChild(document.createTextNode(piece));
+                  return;
+                }
+                const span = document.createElement('span');
+                span.className = 'tw-word tw-pending';
+                span.textContent = piece;
+                frag.appendChild(span);
+                units.push(span);
+              });
+              child.replaceWith(frag);
+            } else if (child.nodeType === 1) {
+              const tag = child.tagName;
+              const block = tag === 'PRE' || tag === 'IMG' || tag === 'TABLE' ||
+                child.classList.contains('sourceCode') ||
+                child.classList.contains('cell') ||
+                child.classList.contains('code-copy-outer-scaffold');
+              // Inline code and bare icons are revealed whole, not letter by
+              // letter — splitting their text would strand the inner spans
+              // under the Quarto theme's `code span` colour, and streaming a
+              // one-token span looks like a glitch anyway.
+              const atomic = tag === 'CODE' || tag === 'ICONIFY-ICON' ||
+                child.classList.contains('iconify');
+              if (block) {
+                child.classList.add('tw-block', 'tw-pending');
+                units.push(child);
+              } else if (atomic) {
+                child.classList.add('tw-word', 'tw-pending');
+                units.push(child);
+              } else {
+                walk(child);
+              }
+            }
+          });
+        }
+        walk(textEl);
+
+        bubble._tw = { units };
+        return bubble._tw;
+      }
+
+      function stepDelay(unit, count) {
+        if (unit.classList.contains('tw-block')) return 260;
+        // Keep the whole message under ~2.2s however long it is.
+        const base = Math.max(12, Math.min(42, 2200 / Math.max(count, 1)));
+        const tail = unit.textContent.slice(-1);
+        if (/[.!?:]/.test(tail)) return base + 170;
+        if (/[,;]/.test(tail)) return base + 70;
+        return base + Math.random() * 24;
+      }
+
+      const prefersReducedMotion =
+        window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function playTypewriter(bubble, chat, onSettled) {
+        const tw = buildTypewriter(bubble);
+        if (bubble._twCancel) bubble._twCancel(true);
+
+        bubble.classList.add('text-revealed');
+
+        if (prefersReducedMotion) {
+          tw.units.forEach(u => u.classList.remove('tw-pending'));
+          scrollBubbleIntoView(chat, bubble);
+          rescrollOnImageLoad(chat, bubble);
+          if (onSettled) onSettled();
+          return;
+        }
+
+        bubble._twRunning = true;
+        bubble.classList.add('cc-streaming'); // keeps the avatar blinking
+
+        let i = 0;
+        const total = tw.units.length;
+
+        const done = () => {
+          bubble._twRunning = false;
+          bubble._twCancel = null;
+          bubble.classList.remove('cc-streaming');
+        };
+
+        const tick = () => {
+          if (i >= total) {
+            done();
+            scrollBubbleIntoView(chat, bubble);
+            rescrollOnImageLoad(chat, bubble);
+            if (onSettled) onSettled();
+            return;
+          }
+          const unit = tw.units[i++];
+          unit.classList.remove('tw-pending');
+          scrollBubbleIntoView(chat, bubble, undefined, false);
+          bubble._twTimer = setTimeout(tick, stepDelay(unit, total));
+        };
+
+        bubble._twCancel = (complete) => {
+          clearTimeout(bubble._twTimer);
+          done();
+          if (complete) {
+            tw.units.forEach(u => u.classList.remove('tw-pending'));
+            scrollBubbleIntoView(chat, bubble);
+            if (onSettled) onSettled();
+          }
+        };
+
+        tick();
+      }
+
+      function resetTypewriter(bubble, chat) {
+        clearTimeout(bubble._twTimer);
+        bubble._twRunning = false;
+        bubble._twCancel = null;
+        bubble.classList.remove('text-revealed', 'cc-streaming');
+        if (bubble._tw) bubble._tw.units.forEach(u => u.classList.add('tw-pending'));
+        if (chat) scrollBubbleIntoView(chat, bubble);
+      }
+
+      // Any typing bubble mid-stream in this chat jumps to its final state.
+      // Used when the next reveal fires before the current one has finished
+      // (fast forward, or jumping straight to a later slide).
+      function finishRunningTypewriters(chat, except) {
+        chat.querySelectorAll('.is-typing').forEach(b => {
+          if (b !== except && b._twRunning && b._twCancel) b._twCancel(true);
+        });
       }
 
       // The mirror of the above, for stepping backwards.
@@ -339,6 +518,13 @@ window.RevealChatBubbles = function () {
         const chat = fragment.closest('.chat');
         if (!chat) return;
 
+        // Advancing past a bubble that is still streaming snaps it to its final
+        // state (the typing-reveal branch below does this for the bubble it is
+        // about to play, so only the "something else appeared" case is left).
+        if (chat.dataset.chatTheme === 'claude-code' && !isTypingReveal(fragment)) {
+          finishRunningTypewriters(chat);
+        }
+
         if (isReaction(fragment)) {
           const bubble = chat.querySelector(`[data-bubble-id="${fragment.dataset.targetBubble}"]`);
           if (!bubble) return;
@@ -357,6 +543,14 @@ window.RevealChatBubbles = function () {
         if (isTypingReveal(fragment)) {
           const bubble = chat.querySelector(`[data-bubble-id="${fragment.dataset.targetTypingBubble}"]`);
           if (!bubble) return;
+
+          if (chat.dataset.chatTheme === 'claude-code' &&
+              bubble.dataset.assistant !== undefined) {
+            finishRunningTypewriters(chat, bubble);
+            playTypewriter(bubble, chat);
+            return;
+          }
+
           // Scroll twice: once optimistically with the known end height so the
           // motion runs alongside the expansion, and once after it settles.
           // The first scroll is clamped by a scrollHeight that does not yet
@@ -392,6 +586,13 @@ window.RevealChatBubbles = function () {
         if (isTypingReveal(fragment)) {
           const bubble = chat.querySelector(`[data-bubble-id="${fragment.dataset.targetTypingBubble}"]`);
           if (!bubble) return;
+
+          if (chat.dataset.chatTheme === 'claude-code' &&
+              bubble.dataset.assistant !== undefined) {
+            resetTypewriter(bubble, chat);
+            return;
+          }
+
           // Collapsing back to dots shrinks the transcript; re-assert the anchor
           // afterwards so the dots sit where the text did rather than wherever
           // the browser's own scrollTop clamping leaves them.
