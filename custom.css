@@ -143,10 +143,74 @@ html.print-pdf .reveal .footer {
     margin-bottom: 0.4em;
 }
 
+/* Barre de contrôles (recherche + filtre commune), visible après le play. */
+.testlive-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.4em 1em;
+    margin: 0.2em 0 0.4em 0;
+}
+.testlive-control {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+    color: #666;
+}
+.testlive-control .testlive-search-input {
+    margin: 0;
+}
+
+/* Champ commune avec autocomplétion (comboBox). */
+.combo-box {
+    position: relative;
+    width: 260px;
+}
+.combo-menu[hidden] {
+    display: none;
+}
+.combo-menu {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+.combo-menu li {
+    padding: 4px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.combo-menu li:hover,
+.combo-menu li.active {
+    background: #4758AB;
+    color: #fff;
+}
+
 /* --- Explorateur par commune (carte + barplot) --- */
 .test-live-slide select,
 .test-live-slide label {
     font-size: 13px;
+}
+
+/* Sélecteur compact (démo "Des calculs fluides") */
+.compact-select,
+.compact-select label,
+.compact-select select {
+    font-size: 20px !important;
 }
 .reveal .maplibregl-popup-content {
     font-size: 13px;
@@ -180,6 +244,49 @@ html.print-pdf .reveal .footer {
     color: #666;
     margin: 0.3em 0 0.6em 0;
 }
+.testlive-timing.is-loading {
+    opacity: 0.45;
+}
+/* SQL affiché sous le tableau (démos "Test live" 1 à 3) — thème sombre */
+.reveal .testlive-sql {
+    margin: 0.5em 0 0 0;
+}
+.reveal .testlive-sql figcaption {
+    font-size: 7px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8b90a0;
+    margin-bottom: 2px;
+}
+.reveal .testlive-sql pre {
+    margin: 0;
+    padding: 8px 12px;
+    background: #1a1b26;
+    border: none;
+    border-radius: 6px;
+    max-height: 30vh;
+    overflow: auto;
+    box-shadow: none;
+}
+.reveal .testlive-sql pre code {
+    font-family: monospace;
+    font-size: 10px !important;
+    line-height: 1.4;
+    color: #c0caf5;
+    background: none;
+    text-shadow: none;
+    white-space: pre;
+}
+/* Coloration syntaxique facon editeur (palette VS Code Dark+) : de la
+   couleur sur presque tous les tokens pour aerer un bloc dense. */
+.testlive-sql .tok-kw  { color: #569cd6; font-weight: 700; }
+.testlive-sql .tok-fn  { color: #dcdcaa; }
+.testlive-sql .tok-str { color: #ce9178; }
+.testlive-sql .tok-num { color: #b5cea8; }
+.testlive-sql .tok-com { color: #6a9955; font-style: italic; }
+.testlive-sql .tok-op  { color: #d4d4d4; }
+.testlive-sql .tok-id  { color: #9cdcfe; }
+
 .testlive-results table {
     table-layout: fixed;
     width: 100%;
