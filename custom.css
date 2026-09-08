@@ -138,9 +138,48 @@ html.print-pdf .reveal .footer {
     transform: scale(0.94);
 }
 
-/* --- Widget "Tester en live" (bouton + statut + recherche + tableau) --- */
+/* --- Widget "Tester en live" : simple contour arrondi (fond = celui du
+   slide), bouton play centre facon lecteur video avant lancement. --- */
+
+/* Colle le cadre au titre du slide (reduit la marge en haut). */
+.reveal .test-live-slide h2 {
+    margin-bottom: 0.3em;
+}
+.reveal .test-live-slide .cell,
+.reveal .test-live-slide div.cell-output-ojs {
+    margin: 0;
+}
+
+.reveal .testlive-widget {
+    border: 1.5px solid #1a1b26;
+    border-radius: 14px;
+    padding: 18px 22px;
+    /* droite = gauche, bas = espace laisse en haut sous le titre */
+    margin: 0 14px 14px 14px;
+    box-sizing: border-box;
+}
+
+.reveal .testlive-widget:not(.is-running) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7em;
+    min-height: 340px;
+}
+
 .testlive-widget .run-live-btn {
-    margin-bottom: 0.4em;
+    margin: 0;
+}
+.testlive-widget:not(.is-running) .run-live-btn {
+    width: 4.2em;
+    height: 4.2em;
+}
+.testlive-widget.is-running .run-live-btn {
+    margin-bottom: 0.5em;
+}
+.testlive-widget:not(.is-running) .testlive-placeholder {
+    margin: 0;
 }
 
 /* Barre de contrôles (recherche + filtre commune), visible après le play. */
