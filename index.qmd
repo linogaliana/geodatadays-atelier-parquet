@@ -4,6 +4,7 @@ subtitle: |
     Geodata days
 author:
     - Lino Galiana
+institute: Insee
 date: 2026-09-17
 date-format: long
 slide-number: true
@@ -29,36 +30,41 @@ header-includes: |
   <!-- Interlocuteurs du chat facon "Claude Code" : 1er = la personne, 2e = l'assistant IA.
        Seules les reponses de l'assistant se deroulent progressivement ;
        son avatar clignotant est le logo Parquet. -->
-  <meta name="chat-names" content="Benjamin,parquetGPT">
+  <meta name="chat-names" content="Lino,parquetGPT">
 ---
 
 ## Pour des données statistiques {.slide-chat background-color="#1a1b26"}
 
 :::: {.chat theme="claude-code"}
 
-::: {.speaker-1}
-`@lino` la présentation en est où ?
-:::
-
 ::: {.speaker-2 .fragment .typing}
-Bonjour je suis l'assistant virtuel de Lino. Je suis là pour vous montrer ce qu'on peut faire avec le format `Parquet` {{< iconify vscode-icons:file-type-parquet >}}.
+Bonjour je suis une IA qui peut vous montrer ce qu'on peut faire avec le format `Parquet` {{< iconify vscode-icons:file-type-parquet >}}.
 :::
 
 ::: {.speaker-1 .fragment .typing}
-Je veux connaître les principales cultures des Hauts de France avec le RPG
+Help ! Benjamin veut connaître les principales cultures des Hauts de France avec le RPG, je connais pas ces données.
 :::
 
 ::: {.speaker-2 .fragment .typing}
-Je suppose que RPG = **registre parcellaire graphique** et pas *role playing game* (humour de LLM 🤖).
+
+Je suppose que RPG = **registre parcellaire graphique**.
 :::
 
 ::: {.speaker-2 .fragment .typing}
-C'est facile si la donnée est en `Parquet` accessible depuis le *cloud*. 
+C'est facile si la donnée est en `Parquet` accessible depuis un *cloud*. 
 :::
 
 ::: {.speaker-2 .fragment .typing}
 
 [`DuckDB` {{< iconify vscode-icons:file-type-light-duckdb >}}](https://duckdb.org/) te permettra d'avoir ton résultat grâce à du SQL. 
+:::
+
+::: {.speaker-1 .fragment}
+Ah SQL je connais !
+:::
+
+::: {.speaker-2 .fragment .typing}
+Pour avoir les principales cultures, il suffit de compter chaque type de culture: 
 
 ```sql
 SELECT
@@ -143,8 +149,12 @@ On va calculer la part des surfaces (et plus seulement des exploitations) dans c
 :::: {.chat theme="claude-code"}
 
 ::: {.speaker-1}
-J'aurais tellement envie de savoir les cultures dominantes à Cauchy-à-la-Tour ... pas le droit de dire *"non"*, bien entendu !
+Y a @Benjamin qui veut connaître les cultures dominantes à Cauchy-à-la-Tour... il m'a dit que j'avais pas le droit de dire *"non"* !
 :::
+
+::: {.speaker-2 .fragment .typing}
+Benjamin cherche sans doute à me tuer. Mais avec `Parquet` je vais y arriver sans souci.
+::: 
 
 ::: {.speaker-2 .fragment .typing}
 Il suffit de raffiner la requête précédente avec un `WHERE`. Je vais te proposer quelque chose de général. 
@@ -173,7 +183,7 @@ WHERE r.nom_officiel ILIKE '%<commune>%'
 :::: {.chat theme="claude-code"}
 
 ::: {.speaker-1}
-Julien dit que la vitesse c'est pas très important
+Julien dit que la vitesse c'est pas très important.
 :::
 
 
@@ -210,7 +220,7 @@ Julien est presque convaincu.
 Mais il dit que là tu affiches des petits volumes de données. ça marcherait de tout afficher ?
 :::
 
-::: {.speaker-2  .fragment}
+::: {.speaker-2  .fragment .typing}
 Oui bien-sûr. Représentons toutes les parcelles et mettons en surbrillance celles qui nous intéressent
 :::
 
@@ -230,26 +240,26 @@ Oui bien-sûr. Représentons toutes les parcelles et mettons en surbrillance cel
 C'est compliqué à reproduire chez soi ?
 :::
 
-::: {.speaker-2  .fragment}
+::: {.speaker-2  .fragment .typing}
 Les outils présentés ici sont tous *open source*, utilisables de nombreuses manières !
 :::
 
-::: {.speaker-2 .fragment}
-`Parquet` est un format de fichier lisible par de nombreux logiciels (comme `CSV` mais optimisé pour la *data*)
+::: {.speaker-2 .fragment .typing}
+`Parquet` {{< iconify vscode-icons:file-type-parquet >}} est un format de fichier lisible par de nombreux logiciels (comme `CSV` mais optimisé pour la *data*)
 :::
 
-::: {.speaker-2 .fragment}
-`DuckDB` est le logiciel le plus puissant pour lire un `Parquet`. 
+::: {.speaker-2 .fragment .typing}
+`DuckDB` {{< iconify vscode-icons:file-type-light-duckdb >}} est le logiciel le plus puissant pour lire un `Parquet`. 
 
-Il peut s'utiliser directement ou via {{< fa brands r-project >}}, `Python` ({{< fa brands python >}}) et même `QGIS` ! 
+Il peut s'utiliser directement ou via {{< fa brands r-project >}}, `Python` {{< fa brands python >}}, `Javascript` {{< fa brands js-square >}} et même `QGIS` ! 
 :::
 
 ::: {.speaker-1 .fragment}
 Mais on est obligé d'avoir un *cloud* ?
 :::
 
-::: {.speaker-2 .fragment}
-Même sur un ordinateur personnel ça marche. On peut lire une donnée
+::: {.speaker-2 .fragment .typing}
+Même sur un ordinateur personnel ça marche. On peut lire une donnée:
 
 * depuis son disque dur
 * ou depuis internet (plein de `Parquet` sur [`data.gouv`](https://www.data.gouv.fr/))
