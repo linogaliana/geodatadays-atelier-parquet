@@ -1,7 +1,7 @@
 ---
 title: "[Quel apport des formats optimisés *cloud* ?]{.blue}"
 subtitle: |
-    Geodata days
+    Geodata days 2026
 author:
     - Lino Galiana
 institute: Insee
@@ -9,7 +9,7 @@ date: 2026-09-17
 date-format: long
 slide-number: true
 footer: |
-  Geodata Days - Session innovation technologique
+  Geodata Days 2026 - Session innovation technologique
 lang: fr-FR
 slide-tone: false
 chalkboard:
