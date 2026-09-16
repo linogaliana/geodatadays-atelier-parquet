@@ -104,7 +104,7 @@ Julien est pas impressionné...
 Il dit qu'il veut faire de la géo (*in geo veritas* qu'il dit)
 :::
 
-::: {.speaker-2 .fragment}
+::: {.speaker-2 .fragment .typing}
 * On peut utiliser `Parquet` pour stocker des données géographiques (plus rapide et léger que `GeoJSON`)
 * On peut utiliser les fonctionnalités géographiques de [`DuckDB` {{< iconify vscode-icons:file-type-light-duckdb >}}](https://duckdb.org/) (plus léger  que `PostGIS`).
 :::
@@ -149,7 +149,7 @@ On va calculer la part des surfaces (et plus seulement des exploitations) dans c
 :::: {.chat theme="claude-code"}
 
 ::: {.speaker-1}
-Y a @Benjamin qui veut connaître les cultures dominantes à Cauchy-à-la-Tour... il m'a dit que j'avais pas le droit de dire *"non"* !
+Benjamin veut connaître les cultures dominantes à Cauchy-à-la-Tour... il m'a dit que j'avais pas le droit de dire *"non"* !
 :::
 
 ::: {.speaker-2 .fragment .typing}
