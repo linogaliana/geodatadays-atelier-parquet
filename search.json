@@ -32,7 +32,7 @@
     "href": "index.html#pour-explorer-ses-données-à-différentes-échelles",
     "title": "Quel apport des formats optimisés cloud ?",
     "section": "Pour explorer ses données à différentes échelles",
-    "text": "Pour explorer ses données à différentes échelles\n\n\nY a @Benjamin qui veut connaître les cultures dominantes à Cauchy-à-la-Tour… il m’a dit que j’avais pas le droit de dire “non” !\n\n\nBenjamin cherche sans doute à me tuer. Mais avec Parquet je vais y arriver sans souci.\n\n\nIl suffit de raffiner la requête précédente avec un WHERE. Je vais te proposer quelque chose de général.\nSELECT\n    COALESCE(d.nom_chapitre, 'Non classé') AS famille,\n    COUNT(*) AS n_parcelles,\n    SUM(ST_Area(r.geom)) / 10000 AS surface_ha\nFROM read_parquet('${RPG_URL}') r\nLEFT JOIN dico d ON r.code_cultu = d.code_culture\nGROUP BY 1\nORDER BY surface_ha DESC\nWHERE r.nom_officiel ILIKE '%&lt;commune&gt;%'"
+    "text": "Pour explorer ses données à différentes échelles\n\n\nBenjamin veut connaître les cultures dominantes à Cauchy-à-la-Tour… il m’a dit que j’avais pas le droit de dire “non” !\n\n\nBenjamin cherche sans doute à me tuer. Mais avec Parquet je vais y arriver sans souci.\n\n\nIl suffit de raffiner la requête précédente avec un WHERE. Je vais te proposer quelque chose de général.\nSELECT\n    COALESCE(d.nom_chapitre, 'Non classé') AS famille,\n    COUNT(*) AS n_parcelles,\n    SUM(ST_Area(r.geom)) / 10000 AS surface_ha\nFROM read_parquet('${RPG_URL}') r\nLEFT JOIN dico d ON r.code_cultu = d.code_culture\nGROUP BY 1\nORDER BY surface_ha DESC\nWHERE r.nom_officiel ILIKE '%&lt;commune&gt;%'"
   },
   {
     "objectID": "index.html#démo-3",
