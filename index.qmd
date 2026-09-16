@@ -120,7 +120,7 @@ ORDER BY surface_ha DESC
 
 
 ::: {.speaker-1 .fragment}
-Julien ne croît que ce qu'il voit. Faut une démo !
+Julien ne croit que ce qu'il voit. Faut une démo !
 :::
 
 ::: {.speaker-2 .fragment .typing}
