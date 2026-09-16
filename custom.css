@@ -81,6 +81,18 @@
     background-size: contain;
     pointer-events: none;
 }
+.reveal #title-slide::after {
+    content: "Image par Sylvain Beorchia";
+    position: absolute;
+    top: calc(50% + 118px);
+    right: 10px;
+    width: 130px;
+    text-align: center;
+    font-size: 0.45em;
+    font-style: italic;
+    color: #666;
+    pointer-events: none;
+}
 .quarto-title-author-name  {
     color: #000;
     font-weight: bold;
