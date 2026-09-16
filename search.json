@@ -4,7 +4,7 @@
     "href": "index.html#pour-des-données-statistiques",
     "title": "Quel apport des formats optimisés cloud ?",
     "section": "Pour des données statistiques",
-    "text": "Pour des données statistiques\n\n\n@lino la présentation en est où ?\n\n\nBonjour je suis l’assistant virtuel de Lino. Je suis là pour vous montrer ce qu’on peut faire avec le format Parquet .\n\n\nJe veux connaître les principales cultures des Hauts de France avec le RPG\n\n\nJe suppose que RPG = registre parcellaire graphique et pas role playing game (humour de LLM 🤖).\n\n\nC’est facile si la donnée est en Parquet accessible depuis le cloud.\n\n\nDuckDB  te permettra d’avoir ton résultat grâce à du SQL.\nSELECT\n    r.code_cultu,\n    COALESCE(d.nom_culture, r.code_cultu) AS nom_culture,\n    COALESCE(d.nom_chapitre, 'Non classé') AS nom_chapitre,\n    COUNT(*) AS n\nFROM read_parquet('${RPG_URL}') r\nLEFT JOIN dico d ON r.code_cultu = d.code_culture\nWHERE r.code_cultu IS NOT NULL\nGROUP BY 1, 2, 3\nORDER BY n DESC\nTu veux tester en live ?"
+    "text": "Pour des données statistiques\n\n\nBonjour je suis une IA qui peut vous montrer ce qu’on peut faire avec le format Parquet .\n\n\nHelp ! Benjamin veut connaître les principales cultures des Hauts de France avec le RPG, je connais pas ces données.\n\n\nJe suppose que RPG = registre parcellaire graphique.\n\n\nC’est facile si la donnée est en Parquet accessible depuis un cloud.\n\n\nDuckDB  te permettra d’avoir ton résultat grâce à du SQL.\n\n\nAh SQL je connais !\n\n\nPour avoir les principales cultures, il suffit de compter chaque type de culture:\nSELECT\n    r.code_cultu,\n    COALESCE(d.nom_culture, r.code_cultu) AS nom_culture,\n    COALESCE(d.nom_chapitre, 'Non classé') AS nom_chapitre,\n    COUNT(*) AS n\nFROM read_parquet('${RPG_URL}') r\nLEFT JOIN dico d ON r.code_cultu = d.code_culture\nWHERE r.code_cultu IS NOT NULL\nGROUP BY 1, 2, 3\nORDER BY n DESC\nTu veux tester en live ?"
   },
   {
     "objectID": "index.html#démo-1",
@@ -32,7 +32,7 @@
     "href": "index.html#pour-explorer-ses-données-à-différentes-échelles",
     "title": "Quel apport des formats optimisés cloud ?",
     "section": "Pour explorer ses données à différentes échelles",
-    "text": "Pour explorer ses données à différentes échelles\n\n\nJ’aurais tellement envie de savoir les cultures dominantes à Cauchy-à-la-Tour … pas le droit de dire “non”, bien entendu !\n\n\nIl suffit de raffiner la requête précédente avec un WHERE. Je vais te proposer quelque chose de général.\nSELECT\n    COALESCE(d.nom_chapitre, 'Non classé') AS famille,\n    COUNT(*) AS n_parcelles,\n    SUM(ST_Area(r.geom)) / 10000 AS surface_ha\nFROM read_parquet('${RPG_URL}') r\nLEFT JOIN dico d ON r.code_cultu = d.code_culture\nGROUP BY 1\nORDER BY surface_ha DESC\nWHERE r.nom_officiel ILIKE '%&lt;commune&gt;%'"
+    "text": "Pour explorer ses données à différentes échelles\n\n\nY a @Benjamin qui veut connaître les cultures dominantes à Cauchy-à-la-Tour… il m’a dit que j’avais pas le droit de dire “non” !\n\n\nBenjamin cherche sans doute à me tuer. Mais avec Parquet je vais y arriver sans souci.\n\n\nIl suffit de raffiner la requête précédente avec un WHERE. Je vais te proposer quelque chose de général.\nSELECT\n    COALESCE(d.nom_chapitre, 'Non classé') AS famille,\n    COUNT(*) AS n_parcelles,\n    SUM(ST_Area(r.geom)) / 10000 AS surface_ha\nFROM read_parquet('${RPG_URL}') r\nLEFT JOIN dico d ON r.code_cultu = d.code_culture\nGROUP BY 1\nORDER BY surface_ha DESC\nWHERE r.nom_officiel ILIKE '%&lt;commune&gt;%'"
   },
   {
     "objectID": "index.html#démo-3",
@@ -46,7 +46,7 @@
     "href": "index.html#pour-des-applis-web",
     "title": "Quel apport des formats optimisés cloud ?",
     "section": "Pour des applis web",
-    "text": "Pour des applis web\n\n\nJulien dit que la vitesse c’est pas très important\n\n\nQu’on peut faire les calculs une fois pour toute et puis voilà.\n\n\nLa performance c’est important pour une application web où on change la carte régulièrement.\n\n\nMontre moi !"
+    "text": "Pour des applis web\n\n\nJulien dit que la vitesse c’est pas très important.\n\n\nQu’on peut faire les calculs une fois pour toute et puis voilà.\n\n\nLa performance c’est important pour une application web où on change la carte régulièrement.\n\n\nMontre moi !"
   },
   {
     "objectID": "index.html#démo-4",
@@ -74,6 +74,6 @@
     "href": "index.html#pour-reproduire-chez-soi",
     "title": "Quel apport des formats optimisés cloud ?",
     "section": "Pour reproduire chez soi",
-    "text": "Pour reproduire chez soi\n\n\nC’est compliqué à reproduire chez soi ?\n\n\nLes outils présentés ici sont tous open source, utilisables de nombreuses manières !\n\n\nParquet est un format de fichier lisible par de nombreux logiciels (comme CSV mais optimisé pour la data)\n\n\nDuckDB est le logiciel le plus puissant pour lire un Parquet.\nIl peut s’utiliser directement ou via , Python () et même QGIS !\n\n\nMais on est obligé d’avoir un cloud ?\n\n\nMême sur un ordinateur personnel ça marche. On peut lire une donnée\n\ndepuis son disque dur\nou depuis internet (plein de Parquet sur data.gouv)\n\nAvec le cloud on pourra aller plus loin grâce à des optimisations supplémentaires.\n\n\nMais ça implique de mettre ses données hors de France ?\n\n\nMode publicité souveraine activé\nPas forcément, on peut avoir un cloud auto-hébergé. Il existe des projets open source pour ça, comme le logiciel Onyxia développé à l’Insee"
+    "text": "Pour reproduire chez soi\n\n\nC’est compliqué à reproduire chez soi ?\n\n\nLes outils présentés ici sont tous open source, utilisables de nombreuses manières !\n\n\nParquet  est un format de fichier lisible par de nombreux logiciels (comme CSV mais optimisé pour la data)\n\n\nDuckDB  est le logiciel le plus puissant pour lire un Parquet.\nIl peut s’utiliser directement ou via , Python , Javascript  et même QGIS !\n\n\nMais on est obligé d’avoir un cloud ?\n\n\nMême sur un ordinateur personnel ça marche. On peut lire une donnée:\n\ndepuis son disque dur\nou depuis internet (plein de Parquet sur data.gouv)\n\nAvec le cloud on pourra aller plus loin grâce à des optimisations supplémentaires.\n\n\nMais ça implique de mettre ses données hors de France ?\n\n\nMode publicité souveraine activé\nPas forcément, on peut avoir un cloud auto-hébergé. Il existe des projets open source pour ça, comme le logiciel Onyxia développé à l’Insee"
   }
 ]
